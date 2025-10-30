@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trading", "Trading\Trading.csproj", "{CE171A60-F15F-4665-9DC6-605788C6C839}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CE171A60-F15F-4665-9DC6-605788C6C839}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE171A60-F15F-4665-9DC6-605788C6C839}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE171A60-F15F-4665-9DC6-605788C6C839}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE171A60-F15F-4665-9DC6-605788C6C839}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
