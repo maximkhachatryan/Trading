@@ -7,8 +7,12 @@ using Trading.Base;
 using Trading.Constants;
 using Trading.Indicators;
 using Trading.Strategies;
+using Trading.Tests;
 using BybitExchange = Trading.Exchanges.BybitExchange;
 
+
+var dcaStrategyTest = new DCAStrategyTest();
+await dcaStrategyTest.Test();
 //await RunMySecondStrategy();
 //await DoBackTest();
 //await CompareStrategies();
@@ -17,7 +21,7 @@ using BybitExchange = Trading.Exchanges.BybitExchange;
 
 //await TestEmaMacdRsiAdxTrendStrategy();
 
-await TestSuperTrendStrategy();
+//await TestSuperTrendStrategy();
 
 // await TestBenoStrategy();
 

@@ -6,7 +6,7 @@ public class Portfolio
 
     public string SourceSymbol { get; }
 
-    public Portfolio(string sourceSymbol, params string[] otherSymbols)
+    public Portfolio(string sourceSymbol, decimal balance, params string[] otherSymbols)
     {
         if (string.IsNullOrWhiteSpace(sourceSymbol))
             throw new ArgumentException("Source symbol cannot be null or empty.", nameof(sourceSymbol));
@@ -19,8 +19,9 @@ public class Portfolio
         SourceSymbol = sourceSymbol;
         _assets[sourceSymbol] = new PortfolioAsset
         {
-            Asset = new Asset { Symbol = sourceSymbol, Balance = 0 },
-            AverageBuyPrice = 1
+            Asset = new Asset { Symbol = sourceSymbol, Balance = balance },
+            AverageBuyPrice = 1,
+            AverageBuyPriceIncludingFees = 1
         };
 
         foreach (var symbol in otherSymbols)
@@ -36,12 +37,17 @@ public class Portfolio
         }
     }
 
-    public IReadOnlyCollection<Asset> Assets => _assets.Values.Select(a => a.Asset).ToList();
+    public IReadOnlyDictionary<string, PortfolioAsset> Assets => _assets.AsReadOnly();
 
     public decimal CalculateCost()
         => _assets.Values.Sum(x => x.Asset.Balance * x.AverageBuyPrice);
 
-    public void Buy(string symbol, decimal price, decimal count, decimal totalFee = 0)
+    public void Buy(string symbol, decimal price, decimal sourceAmount, decimal totalFee = 0)
+    {
+        
+    }
+
+    public void Sell(string symbol, decimal price, decimal assetAmount, decimal totalFee = 0)
     {
         
     }
