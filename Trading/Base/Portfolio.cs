@@ -5,7 +5,6 @@ namespace Trading.Base;
 
 public class Portfolio
 {
-    
     private readonly Dictionary<string, PortfolioAsset> _assets = new(StringComparer.OrdinalIgnoreCase);
 
     public string SourceSymbol { get; }
@@ -56,19 +55,19 @@ public class Portfolio
             Console.WriteLine("Not enough funds to buy asset");
             return;
         }
-        
+
         var assetCount = sourceAmount / price;
 
         var (newAveragePrice, newAveragePriceIncludingFees) =
-            PortfolioAsset.CalculatePriceAfterBuying(_assets[symbol],price, sourceAmount, totalFee );
-        
+            PortfolioAsset.CalculatePriceAfterBuying(_assets[symbol], price, sourceAmount, totalFee);
+
         _assets[symbol].LastTradePrice = price;
         _assets[symbol].Asset.Balance += assetCount;
         _assets[symbol].AverageBuyPrice = newAveragePrice;
         _assets[symbol].AverageBuyPriceIncludingFees = newAveragePriceIncludingFees;
 
         _assets[SourceSymbol].Asset.Balance -= sourceAmount + totalFee;
-        
+
         Trades.Add(new Trade
         {
             TimeStamp = dateTime,
@@ -84,9 +83,11 @@ public class Portfolio
             AverageBuyPriceIncludingFees = _assets[symbol].AverageBuyPriceIncludingFees
         });
     }
-
-    public void Sell(DateTime dateTime, string symbol, decimal price, decimal assetCount, decimal totalFee = 0)
+    
+    public void Sell(DateTime dateTime, string symbol, decimal price, decimal sourceAmount, decimal totalFee = 0)
     {
+        var assetCount = sourceAmount / price;
+
         var sourceBalanceBefore = _assets[SourceSymbol].Asset.Balance;
         var assetBalanceBefore = _assets[symbol].Asset.Balance;
         if (assetBalanceBefore < assetCount)
@@ -95,12 +96,17 @@ public class Portfolio
             return;
         }
         
-        var sourceAmount = assetCount * price;
+        var (newAveragePrice, newAveragePriceIncludingFees) =
+            PortfolioAsset.CalculatePriceAfterSelling(_assets[symbol], price, sourceAmount, totalFee);
 
         _assets[symbol].LastTradePrice = price;
         _assets[symbol].Asset.Balance -= assetCount;
+        _assets[symbol].AverageBuyPrice = newAveragePrice;
+        _assets[symbol].AverageBuyPriceIncludingFees = newAveragePriceIncludingFees;
+
         _assets[SourceSymbol].Asset.Balance += sourceAmount - totalFee;
-        
+
+
         Trades.Add(new Trade
         {
             TimeStamp = dateTime,

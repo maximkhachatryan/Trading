@@ -32,21 +32,14 @@ public class DCAStrategy(
         {
             var currentPrice = kline.ClosePrice;
             var portfolioAsset = portfolio.Assets[assetSymbol];
-            var assetOldPrice = portfolioAsset.AverageBuyPriceIncludingFees;
             var (_, assetPriceAfterBuyingIncludingFees) = PortfolioAsset.CalculatePriceAfterBuying(portfolioAsset, currentPrice, tradeValue, buyingFee);
             
             if (currentPrice - portfolioAsset.AverageBuyPriceIncludingFees >
                 portfolioAsset.AverageBuyPriceIncludingFees * takeProfitPercentage / 100)
             {
-                var assetBalanceBeforeSale = portfolioAsset.Asset.Balance;
-                portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice, portfolioAsset.Asset.Balance,
+                portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice, portfolioAsset.Asset.Balance * kline.ClosePrice,
                     portfolioAsset.Asset.Balance * kline.ClosePrice * 0.055m / 100);
-                // Console.WriteLine(
-                //     $"Sell (price = {kline.ClosePrice}, avPrIncFees = {portfolioAsset.AverageBuyPriceIncludingFees}) \t${assetBalanceBeforeSale * kline.ClosePrice}");
-
                 portfolio.Buy(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, buyingFee);
-                // Console.WriteLine(
-                //     $"Buy  (price = {kline.ClosePrice}, avPrIncFees = {portfolioAsset.AverageBuyPriceIncludingFees})  \t$100");
             }
             // else if (currentPrice - portfolioAsset.LastTradePrice >
             //          portfolioAsset.LastTradePrice * takeProfitPercentage / 3 / 100)
@@ -63,15 +56,6 @@ public class DCAStrategy(
             {
                 portfolio.Buy(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, buyingFee);
             }
-            
-            // else if (currentPrice*portfolioAsset.Asset.Balance 
-            //          < assetOldPrice*portfolioAsset.Asset.Balance - 
-            //          assetOldPrice*portfolioAsset.Asset.Balance * priceDeviationPercentage / 100)
-            // {
-            //     portfolio.Buy(kline.StartTime, assetSymbol, kline.ClosePrice, buyAmount, buyingFee);
-            //     // Console.WriteLine(
-            //     //     $"Buy  (price = {kline.ClosePrice}, avPrIncFees = {portfolioAsset.AverageBuyPriceIncludingFees})  \t$100");
-            // }
         }
 
         var assetPrices = new Dictionary<string, decimal>
