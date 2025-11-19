@@ -9,12 +9,13 @@ public class DCAStrategyTest()
 {
     public async Task Test()
     {
-        var portfolio = new Portfolio("USDT", 1000, "ETH");
+        var assetSymbol = "ETH";
+        var portfolio = new Portfolio("USDT", 10000, assetSymbol);
         
         var exchange = new BybitExchange();
-        var klines = await exchange.GetKlines("ETHUSDT", Interval.FifteenMinutes, 5000);
+        var klines = await exchange.GetKlines($"{assetSymbol}USDT", Interval.OneDay, 365);
 
-        var dcaStrategy = new DCAStrategy("USDT", "ETH", 30, 20);
+        var dcaStrategy = new DCAStrategy("USDT", assetSymbol, 20, 10, 100);
         
         dcaStrategy.BackTest(klines, portfolio);
     }
