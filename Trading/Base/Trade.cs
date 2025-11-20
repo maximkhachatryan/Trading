@@ -13,7 +13,9 @@ public class Trade
     public decimal Fee { get; set; }
     public decimal CostIncludingFee => Cost + Fee;
     public decimal SourceBalanceBefore { get; set; }
-    public decimal AssetBalanceBefore { get; set; }
-    public decimal AverageBuyPriceAfter { get; set; }
-    public decimal AverageBuyPriceIncludingFees { get; set; }
+    public decimal AssetAverageBalanceIncludingFeesBefore { get; set; }
+    public decimal AssetActualBalanceBefore { get; set; }
+    public decimal ActualPortfolioBalanceBefore => SourceBalanceBefore + AssetActualBalanceBefore;
+    public decimal AveragePriceAfter { get; set; }
+    public decimal AveragePriceIncludingFees { get; set; }
 }

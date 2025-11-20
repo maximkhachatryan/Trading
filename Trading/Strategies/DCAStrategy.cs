@@ -20,9 +20,9 @@ public class DCAStrategy(
 
     public void BackTest(Kline[] klines, Portfolio portfolio)
     {
-        decimal buyingFee = tradeValue * 0.02m / 100;
+        var buyingFee = tradeValue * 0.02m / 100;
 
-
+        decimal? shortSellTarget = null;
         Console.WriteLine($"StartDate: {klines[0].StartTime}");
         portfolio.Buy(klines[0].StartTime, assetSymbol, klines[0].ClosePrice, tradeValue, tradeValue * 0.02m / 100);
         // Console.WriteLine(
@@ -32,42 +32,61 @@ public class DCAStrategy(
         {
             var currentPrice = kline.ClosePrice;
             var portfolioAsset = portfolio.Assets[assetSymbol];
-            var (_, assetPriceAfterBuyingIncludingFees) = PortfolioAsset.CalculatePriceAfterBuying(portfolioAsset, currentPrice, tradeValue, buyingFee);
-            
-            if (currentPrice - portfolioAsset.AverageBuyPriceIncludingFees >
-                portfolioAsset.AverageBuyPriceIncludingFees * takeProfitPercentage / 100)
+            var (_, assetPriceAfterBuyingIncludingFees) =
+                PortfolioAsset.CalculatePriceAfterBuying(portfolioAsset, currentPrice, tradeValue, buyingFee);
+
+            if (currentPrice - portfolioAsset.AveragePriceIncludingFees >
+                portfolioAsset.AveragePriceIncludingFees * takeProfitPercentage / 100)
             {
-                portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice, portfolioAsset.Asset.Balance * kline.ClosePrice,
+                portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice,
+                    portfolioAsset.Asset.Balance * kline.ClosePrice,
                     portfolioAsset.Asset.Balance * kline.ClosePrice * 0.055m / 100);
                 portfolio.Buy(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, buyingFee);
+                shortSellTarget = CalculateShortSellTarget(portfolioAsset, currentPrice);
             }
-            // else if (currentPrice - portfolioAsset.LastTradePrice >
-            //          portfolioAsset.LastTradePrice * takeProfitPercentage / 3 / 100)
-            // {
-            //     var assetBalanceBeforeSale = portfolioAsset.Asset.Balance;
-            //     var assetsCountToSell = buyAmount / currentPrice;
-            //     portfolio.Sell(assetSymbol, kline.ClosePrice, assetsCountToSell,
-            //         assetsCountToSell * kline.ClosePrice * 0.055m / 100);
-            //     Console.WriteLine(
-            //         $"Sell (price = {kline.ClosePrice}, avPrIncFees = {portfolioAsset.AverageBuyPriceIncludingFees}) \t${assetsCountToSell * kline.ClosePrice}");
-            //
-            // }
-            else if (assetPriceAfterBuyingIncludingFees < portfolioAsset.AverageBuyPriceIncludingFees - portfolioAsset.AverageBuyPriceIncludingFees * priceDeviationPercentage / 100)
+            else if (shortSellTarget != null && currentPrice > shortSellTarget)
             {
-                portfolio.Buy(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, buyingFee);
+                portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, tradeValue * 0.055m / 100);
+                shortSellTarget = CalculateShortSellTarget(portfolioAsset, currentPrice);
+            }
+            else if (assetPriceAfterBuyingIncludingFees < portfolioAsset.AveragePriceIncludingFees -
+                     portfolioAsset.AveragePriceIncludingFees * priceDeviationPercentage / 100)
+            {
+                portfolio.Buy(kline.StartTime, assetSymbol, currentPrice, tradeValue, buyingFee);
+
+                shortSellTarget = CalculateShortSellTarget(portfolioAsset, currentPrice);
             }
         }
 
         var assetPrices = new Dictionary<string, decimal>
         {
-            { sourceSymbol, 1},
-            { assetSymbol, klines[0].ClosePrice }
+            { sourceSymbol, 1 },
+            { assetSymbol, klines.Last().ClosePrice }
         };
         Console.WriteLine($"Final Portfolio: ${portfolio.CalculateCost(assetPrices)}");
     }
-    
-    
-    
+
+    private decimal? CalculateShortSellTarget(PortfolioAsset portfolioAsset, decimal currentPrice)
+    {
+        var takeProfitTarget = portfolioAsset.AveragePriceIncludingFees +
+                               portfolioAsset.AveragePriceIncludingFees * takeProfitPercentage / 100;
+        var depthLevel = portfolioAsset.Cost / tradeValue;
+
+        if (depthLevel <= 2)
+        {
+            Console.WriteLine(
+                $"CurrentPrice: {currentPrice:F2}, DepthLevel:{depthLevel:F2}, ShortSell: null, TakeProfit: {takeProfitTarget:F2}");
+
+            return null;
+        }
+
+        var shortSellTarget = currentPrice + currentPrice * takeProfitPercentage / 100;
+        Console.WriteLine(
+            $"CurrentPrice: {currentPrice:F2}, DepthLevel:{depthLevel:F2}, ShortSell: {shortSellTarget:F2}, TakeProfit: {takeProfitTarget:F2}");
+
+        return shortSellTarget;
+    }
+
 
     public event Action<Kline>? OnBuySignal;
     public event Action<Kline>? OnSellSignal;

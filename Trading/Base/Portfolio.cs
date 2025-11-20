@@ -23,8 +23,8 @@ public class Portfolio
         _assets[sourceSymbol] = new PortfolioAsset
         {
             Asset = new Asset { Symbol = sourceSymbol, Balance = balance },
-            AverageBuyPrice = 1,
-            AverageBuyPriceIncludingFees = 1,
+            AveragePrice = 1,
+            AveragePriceIncludingFees = 1,
             LastTradePrice = 1
         };
 
@@ -35,7 +35,7 @@ public class Portfolio
                 _assets[symbol] = new PortfolioAsset
                 {
                     Asset = new Asset { Symbol = symbol, Balance = 0 },
-                    AverageBuyPrice = 0
+                    AveragePrice = 0
                 };
             }
         }
@@ -49,7 +49,8 @@ public class Portfolio
     public void Buy(DateTime dateTime, string symbol, decimal price, decimal sourceAmount, decimal totalFee = 0)
     {
         var sourceBalanceBefore = _assets[SourceSymbol].Asset.Balance;
-        var assetBalanceBefore = _assets[symbol].Asset.Balance;
+        var assetAverageBalanceIncludingFeesBefore = _assets[symbol].Asset.Balance * _assets[symbol].AveragePriceIncludingFees;
+        var assetActualBalanceBefore = _assets[symbol].Asset.Balance * price;
         if (sourceBalanceBefore < sourceAmount + totalFee)
         {
             Console.WriteLine("Not enough funds to buy asset");
@@ -63,8 +64,8 @@ public class Portfolio
 
         _assets[symbol].LastTradePrice = price;
         _assets[symbol].Asset.Balance += assetCount;
-        _assets[symbol].AverageBuyPrice = newAveragePrice;
-        _assets[symbol].AverageBuyPriceIncludingFees = newAveragePriceIncludingFees;
+        _assets[symbol].AveragePrice = newAveragePrice;
+        _assets[symbol].AveragePriceIncludingFees = newAveragePriceIncludingFees;
 
         _assets[SourceSymbol].Asset.Balance -= sourceAmount + totalFee;
 
@@ -78,9 +79,10 @@ public class Portfolio
             Cost = sourceAmount,
             Fee = totalFee,
             SourceBalanceBefore = sourceBalanceBefore,
-            AssetBalanceBefore = assetBalanceBefore,
-            AverageBuyPriceAfter = _assets[symbol].AverageBuyPrice,
-            AverageBuyPriceIncludingFees = _assets[symbol].AverageBuyPriceIncludingFees
+            AssetAverageBalanceIncludingFeesBefore = assetAverageBalanceIncludingFeesBefore,
+            AssetActualBalanceBefore = assetActualBalanceBefore,
+            AveragePriceAfter = _assets[symbol].AveragePrice,
+            AveragePriceIncludingFees = _assets[symbol].AveragePriceIncludingFees
         });
     }
     
@@ -90,6 +92,9 @@ public class Portfolio
 
         var sourceBalanceBefore = _assets[SourceSymbol].Asset.Balance;
         var assetBalanceBefore = _assets[symbol].Asset.Balance;
+        var assetAverageBalanceIncludingFeesBefore = _assets[symbol].Asset.Balance * _assets[symbol].AveragePriceIncludingFees;
+        var assetActualBalanceBefore = _assets[symbol].Asset.Balance * price;
+        
         if (assetBalanceBefore < assetCount)
         {
             Console.WriteLine("Not enough assets to sell");
@@ -101,8 +106,8 @@ public class Portfolio
 
         _assets[symbol].LastTradePrice = price;
         _assets[symbol].Asset.Balance -= assetCount;
-        _assets[symbol].AverageBuyPrice = newAveragePrice;
-        _assets[symbol].AverageBuyPriceIncludingFees = newAveragePriceIncludingFees;
+        _assets[symbol].AveragePrice = newAveragePrice;
+        _assets[symbol].AveragePriceIncludingFees = newAveragePriceIncludingFees;
 
         _assets[SourceSymbol].Asset.Balance += sourceAmount - totalFee;
 
@@ -117,9 +122,10 @@ public class Portfolio
             Cost = sourceAmount,
             Fee = totalFee,
             SourceBalanceBefore = sourceBalanceBefore,
-            AssetBalanceBefore = assetBalanceBefore,
-            AverageBuyPriceAfter = _assets[symbol].AverageBuyPrice,
-            AverageBuyPriceIncludingFees = _assets[symbol].AverageBuyPriceIncludingFees
+            AssetAverageBalanceIncludingFeesBefore = assetAverageBalanceIncludingFeesBefore,
+            AssetActualBalanceBefore = assetActualBalanceBefore,
+            AveragePriceAfter = _assets[symbol].AveragePrice,
+            AveragePriceIncludingFees = _assets[symbol].AveragePriceIncludingFees
         });
     }
 

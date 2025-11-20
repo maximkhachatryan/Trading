@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using Trading.Base;
 using Trading.Constants;
 using Trading.Exchanges;
@@ -9,15 +10,31 @@ public class DCAStrategyTest()
 {
     public async Task Test()
     {
-        var assetSymbol = "ETH";
-        var portfolio = new Portfolio("USDT", 10000, assetSymbol);
+        string[] assetSymbols =
+        [
+            // "XAUT",
+            "BTC",
+            "ETH",
+            // "BNB",
+            // "SOL",
+            // "XRP",
+            // "ADA",
+            // "DOGE",
+            // "AVAX",
+            // "DOT",
+            // "LINK"
+        ];
+        foreach (var assetSymbol in assetSymbols)
+        {
+            var portfolio = new Portfolio("USDT", 1000, assetSymbol);
         
-        var exchange = new BybitExchange();
-        var klines = await exchange.GetKlines($"{assetSymbol}USDT", Interval.OneDay, 365);
+            var exchange = new BybitExchange();
+            var klines = await exchange.GetKlines($"{assetSymbol}USDT", Interval.OneHour, 365*24);
 
-        var dcaStrategy = new DCAStrategy("USDT", assetSymbol, 20, 10, 100);
+            var dcaStrategy = new DCAStrategy("USDT", assetSymbol, 5, 5, 100);
         
-        dcaStrategy.BackTest(klines, portfolio);
+            dcaStrategy.BackTest(klines, portfolio);
+        }
     }
     
     
