@@ -36,8 +36,8 @@ public class DCAStrategyTest()
             var dcaStrategy = new DCAStrategy(
                 sourceSymbol: "USDT",
                 assetSymbol: assetSymbol,
-                takeProfitPercentage: 1,
-                priceDeviationPercentage: 1,
+                takeProfitRatio: 0.01m,
+                priceDeviationRatio: 0.01m,
                 tradeValue: 100,
                 buyFeePercentage: 0.1m,
                 sellFeePercentage: 0.1m);

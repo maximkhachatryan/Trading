@@ -8,8 +8,8 @@ namespace Trading.Strategies;
 public class DCAStrategy(
     string sourceSymbol,
     string assetSymbol,
-    decimal takeProfitPercentage,
-    decimal priceDeviationPercentage,
+    decimal takeProfitRatio,
+    decimal priceDeviationRatio,
     decimal tradeValue,
     decimal buyFeePercentage,
     decimal sellFeePercentage
@@ -36,7 +36,7 @@ public class DCAStrategy(
                 PortfolioAsset.CalculatePriceAfterBuying(portfolioAsset, currentPrice, tradeValue, buyingFee);
 
             if (currentPrice - portfolioAsset.AveragePriceIncludingFees >
-                portfolioAsset.AveragePriceIncludingFees * takeProfitPercentage / 100)
+                portfolioAsset.AveragePriceIncludingFees * takeProfitRatio)
             {
                 portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice,
                     portfolioAsset.Balance * kline.ClosePrice,
@@ -50,7 +50,7 @@ public class DCAStrategy(
                 shortSellTarget = CalculateShortSellTarget(portfolioAsset, currentPrice);
             }
             else if (assetPriceAfterBuyingIncludingFees < portfolioAsset.AveragePriceIncludingFees -
-                     portfolioAsset.AveragePriceIncludingFees * priceDeviationPercentage / 100)
+                     portfolioAsset.AveragePriceIncludingFees * priceDeviationRatio)
             {
                 portfolio.Buy(kline.StartTime, assetSymbol, currentPrice, tradeValue, buyingFee);
 
@@ -69,7 +69,7 @@ public class DCAStrategy(
     private decimal? CalculateShortSellTarget(PortfolioAsset portfolioAsset, decimal currentPrice)
     {
         var takeProfitTarget = portfolioAsset.AveragePriceIncludingFees +
-                               portfolioAsset.AveragePriceIncludingFees * takeProfitPercentage / 100;
+                               portfolioAsset.AveragePriceIncludingFees * takeProfitRatio;
         var depthLevel = portfolioAsset.Cost / tradeValue;
 
         if (depthLevel <= 2)
@@ -80,7 +80,7 @@ public class DCAStrategy(
             return null;
         }
 
-        var shortSellTarget = currentPrice + currentPrice * takeProfitPercentage / 100;
+        var shortSellTarget = currentPrice + currentPrice * takeProfitRatio;
         Console.WriteLine(
             $"CurrentPrice: {currentPrice:F2}, DepthLevel:{depthLevel:F2}, ShortSell: {shortSellTarget:F2}, TakeProfit: {takeProfitTarget:F2}");
 
