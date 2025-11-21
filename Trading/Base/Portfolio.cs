@@ -22,10 +22,10 @@ public class Portfolio
         SourceSymbol = sourceSymbol;
         _assets[sourceSymbol] = new PortfolioAsset
         {
-            Asset = new Asset { Symbol = sourceSymbol, Balance = balance },
+            Symbol = sourceSymbol,
+            Balance = balance,
             AveragePrice = 1,
             AveragePriceIncludingFees = 1,
-            LastTradePrice = 1
         };
 
         foreach (var symbol in otherSymbols)
@@ -34,8 +34,10 @@ public class Portfolio
             {
                 _assets[symbol] = new PortfolioAsset
                 {
-                    Asset = new Asset { Symbol = symbol, Balance = 0 },
-                    AveragePrice = 0
+                    Symbol = symbol,
+                    Balance = 0,
+                    AveragePrice = 0,
+                    AveragePriceIncludingFees = 0
                 };
             }
         }
@@ -44,13 +46,13 @@ public class Portfolio
     public IReadOnlyDictionary<string, PortfolioAsset> Assets => _assets.AsReadOnly();
 
     public decimal CalculateCost(Dictionary<string, decimal> assetPrices)
-        => _assets.Values.Sum(x => x.Asset.Balance * assetPrices[x.Asset.Symbol]);
+        => _assets.Values.Sum(x => x.Balance * assetPrices[x.Symbol]);
 
     public void Buy(DateTime dateTime, string symbol, decimal price, decimal sourceAmount, decimal totalFee = 0)
     {
-        var sourceBalanceBefore = _assets[SourceSymbol].Asset.Balance;
-        var assetAverageBalanceIncludingFeesBefore = _assets[symbol].Asset.Balance * _assets[symbol].AveragePriceIncludingFees;
-        var assetActualBalanceBefore = _assets[symbol].Asset.Balance * price;
+        var sourceBalanceBefore = _assets[SourceSymbol].Balance;
+        var assetAverageBalanceIncludingFeesBefore = _assets[symbol].Balance * _assets[symbol].AveragePriceIncludingFees;
+        var assetActualBalanceBefore = _assets[symbol].Balance * price;
         if (sourceBalanceBefore < sourceAmount + totalFee)
         {
             Console.WriteLine("Not enough funds to buy asset");
@@ -62,12 +64,11 @@ public class Portfolio
         var (newAveragePrice, newAveragePriceIncludingFees) =
             PortfolioAsset.CalculatePriceAfterBuying(_assets[symbol], price, sourceAmount, totalFee);
 
-        _assets[symbol].LastTradePrice = price;
-        _assets[symbol].Asset.Balance += assetCount;
+        _assets[symbol].Balance += assetCount;
         _assets[symbol].AveragePrice = newAveragePrice;
         _assets[symbol].AveragePriceIncludingFees = newAveragePriceIncludingFees;
 
-        _assets[SourceSymbol].Asset.Balance -= sourceAmount + totalFee;
+        _assets[SourceSymbol].Balance -= sourceAmount + totalFee;
 
         Trades.Add(new Trade
         {
@@ -90,10 +91,10 @@ public class Portfolio
     {
         var assetCount = sourceAmount / price;
 
-        var sourceBalanceBefore = _assets[SourceSymbol].Asset.Balance;
-        var assetBalanceBefore = _assets[symbol].Asset.Balance;
-        var assetAverageBalanceIncludingFeesBefore = _assets[symbol].Asset.Balance * _assets[symbol].AveragePriceIncludingFees;
-        var assetActualBalanceBefore = _assets[symbol].Asset.Balance * price;
+        var sourceBalanceBefore = _assets[SourceSymbol].Balance;
+        var assetBalanceBefore = _assets[symbol].Balance;
+        var assetAverageBalanceIncludingFeesBefore = _assets[symbol].Balance * _assets[symbol].AveragePriceIncludingFees;
+        var assetActualBalanceBefore = _assets[symbol].Balance * price;
         
         if (assetBalanceBefore < assetCount)
         {
@@ -104,12 +105,11 @@ public class Portfolio
         var (newAveragePrice, newAveragePriceIncludingFees) =
             PortfolioAsset.CalculatePriceAfterSelling(_assets[symbol], price, sourceAmount, totalFee);
 
-        _assets[symbol].LastTradePrice = price;
-        _assets[symbol].Asset.Balance -= assetCount;
+        _assets[symbol].Balance -= assetCount;
         _assets[symbol].AveragePrice = newAveragePrice;
         _assets[symbol].AveragePriceIncludingFees = newAveragePriceIncludingFees;
 
-        _assets[SourceSymbol].Asset.Balance += sourceAmount - totalFee;
+        _assets[SourceSymbol].Balance += sourceAmount - totalFee;
 
 
         Trades.Add(new Trade
@@ -129,5 +129,5 @@ public class Portfolio
         });
     }
 
-    public List<Trade> Trades { get; set; } = [];
+    public List<Trade> Trades { get; } = [];
 }

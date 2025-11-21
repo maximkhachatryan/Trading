@@ -12,33 +12,37 @@ public class DCAStrategyTest()
     {
         string[] assetSymbols =
         [
+            //"APT",
             // "XAUT",
             "BTC",
-            "ETH",
+            //"ETH",
             // "BNB",
             // "SOL",
             // "XRP",
-            // "ADA",
-            // "DOGE",
+            //"ADA",
+            //"DOGE",
             // "AVAX",
             // "DOT",
             // "LINK"
+            //"PEPE"
         ];
         foreach (var assetSymbol in assetSymbols)
         {
-            var portfolio = new Portfolio("USDT", 1000, assetSymbol);
-        
-            var exchange = new BybitExchange();
-            var klines = await exchange.GetKlines($"{assetSymbol}USDT", Interval.OneHour, 365*24);
+            var portfolio = new Portfolio("USDT", 100000, assetSymbol);
 
-            var dcaStrategy = new DCAStrategy("USDT", assetSymbol, 5, 5, 100);
-        
+            var exchange = new BybitExchange();
+            var klines = await exchange.GetKlines($"{assetSymbol}USDT", Interval.OneHour, 365 * 24);
+
+            var dcaStrategy = new DCAStrategy(
+                sourceSymbol: "USDT",
+                assetSymbol: assetSymbol,
+                takeProfitPercentage: 1,
+                priceDeviationPercentage: 1,
+                tradeValue: 100,
+                buyFeePercentage: 0.1m,
+                sellFeePercentage: 0.1m);
+
             dcaStrategy.BackTest(klines, portfolio);
         }
     }
-    
-    
-    
-    
-    
 }

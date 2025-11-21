@@ -10,7 +10,9 @@ public class DCAStrategy(
     string assetSymbol,
     decimal takeProfitPercentage,
     decimal priceDeviationPercentage,
-    decimal tradeValue
+    decimal tradeValue,
+    decimal buyFeePercentage,
+    decimal sellFeePercentage
 ) : IStrategy
 {
     public void Evaluate(Kline[] klines)
@@ -20,14 +22,12 @@ public class DCAStrategy(
 
     public void BackTest(Kline[] klines, Portfolio portfolio)
     {
-        var buyingFee = tradeValue * 0.02m / 100;
+        var buyingFee = tradeValue * buyFeePercentage / 100;
 
         decimal? shortSellTarget = null;
         Console.WriteLine($"StartDate: {klines[0].StartTime}");
-        portfolio.Buy(klines[0].StartTime, assetSymbol, klines[0].ClosePrice, tradeValue, tradeValue * 0.02m / 100);
-        // Console.WriteLine(
-        //     $"Buy  (price = {klines[0].ClosePrice}, avPrIncFees = {portfolio.Assets[assetSymbol].AverageBuyPriceIncludingFees})  \t$100");
-
+        portfolio.Buy(klines[0].StartTime, assetSymbol, klines[0].ClosePrice, tradeValue, tradeValue * buyFeePercentage / 100);
+        
         foreach (var kline in klines.Skip(1))
         {
             var currentPrice = kline.ClosePrice;
@@ -39,14 +39,14 @@ public class DCAStrategy(
                 portfolioAsset.AveragePriceIncludingFees * takeProfitPercentage / 100)
             {
                 portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice,
-                    portfolioAsset.Asset.Balance * kline.ClosePrice,
-                    portfolioAsset.Asset.Balance * kline.ClosePrice * 0.055m / 100);
+                    portfolioAsset.Balance * kline.ClosePrice,
+                    portfolioAsset.Balance * kline.ClosePrice * sellFeePercentage / 100);
                 portfolio.Buy(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, buyingFee);
                 shortSellTarget = CalculateShortSellTarget(portfolioAsset, currentPrice);
             }
             else if (shortSellTarget != null && currentPrice > shortSellTarget)
             {
-                portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, tradeValue * 0.055m / 100);
+                portfolio.Sell(kline.StartTime, assetSymbol, kline.ClosePrice, tradeValue, tradeValue * sellFeePercentage / 100);
                 shortSellTarget = CalculateShortSellTarget(portfolioAsset, currentPrice);
             }
             else if (assetPriceAfterBuyingIncludingFees < portfolioAsset.AveragePriceIncludingFees -
