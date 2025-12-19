@@ -7,15 +7,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Trading.Domain\Trading.Domain.csproj" />
+      <ProjectReference Include="..\Trading.ApplicationContracts\Trading.ApplicationContracts.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="MongoDB.Driver" Version="3.5.2" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="MongoDB\Repositories\" />
+      <PackageReference Include="Bybit.Net" Version="5.2.0" />
     </ItemGroup>
 
 </Project>

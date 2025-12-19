@@ -31,7 +31,7 @@ public class DCAStrategyTest()
             var portfolio = new Portfolio("USDT", 100000, assetSymbol);
 
             var exchange = new BybitExchange();
-            var klines = await exchange.GetKlines($"{assetSymbol}USDT", Interval.OneHour, 365 * 24);
+            var klines = await exchange.GetKlines($"{assetSymbol}USDT", Interval.FifteenMinutes, 365 * 24 * 4);
 
             var dcaStrategy = new DCAStrategy(
                 sourceSymbol: "USDT",

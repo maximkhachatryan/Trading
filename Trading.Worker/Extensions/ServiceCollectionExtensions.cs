@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using Trading.Domain.Contracts;
-using Trading.Infrastructure.Persistence.MongoDB;
-using Trading.Infrastructure.Persistence.MongoDB.Repositories;
 using Trading.Worker.Configurations;
 
 namespace Trading.Worker.Extensions;
@@ -30,8 +28,8 @@ public static class ServiceCollectionExtensions
             return client.GetDatabase(settings.DatabaseName);
         });
 
-        services.AddScoped<IPortfolioRepository, PortfolioRepository>();
-        services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
+        //services.AddScoped<IPortfolioRepository, PortfolioRepository>();
+        //services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
 
         return services;
     }
