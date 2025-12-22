@@ -1,5 +1,6 @@
 using Trading.ApplicationContracts;
 using Trading.Domain.Constants;
+using Trading.Domain.Events;
 using Trading.Domain.ValueObjects;
 
 namespace Trading.Test.Mocks;
@@ -8,6 +9,9 @@ public class MockExchange : IExchange
 {
     private readonly List<Kline> _klines = new();
     private readonly Dictionary<string, List<string>> _conditionalOrders = new();
+    private readonly Dictionary<string, ConditionalOrder> _placedOrders = new();
+    private Action<OrderFilledEvent>? _orderFilledCallback;
+    private int _orderIdCounter = 1;
 
     public void AddKlines(params Kline[] klines)
     {
@@ -31,6 +35,7 @@ public class MockExchange : IExchange
     public void ClearConditionalOrders()
     {
         _conditionalOrders.Clear();
+        _placedOrders.Clear();
     }
 
     public Task<Kline[]> GetKlines(string symbol, Interval interval, int totalLimit, DateTime? endTime = null)
@@ -78,5 +83,59 @@ public class MockExchange : IExchange
         }
 
         return Task.FromResult(false);
+    }
+
+    public Task<ConditionalOrder> PlaceConditionalBuyOrder(string symbol, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
+    {
+        var orderId = $"MOCK-{_orderIdCounter++}";
+        
+        var order = new ConditionalOrder
+        {
+            OrderId = orderId,
+            Symbol = symbol,
+            Quantity = quantity,
+            TriggerPrice = triggerPrice,
+            TriggerDirection = triggerDirection,
+            PlacedAt = DateTime.UtcNow
+        };
+
+        _placedOrders[orderId] = order;
+        AddConditionalOrder(symbol, orderId);
+
+        return Task.FromResult(order);
+    }
+
+    public Task SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
+    {
+        _orderFilledCallback = onOrderFilled;
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Helper method for testing: simulates an order being filled
+    /// </summary>
+    public void SimulateOrderFilled(string orderId, decimal executionPrice)
+    {
+        if (!_placedOrders.TryGetValue(orderId, out var order))
+        {
+            throw new InvalidOperationException($"Order {orderId} not found");
+        }
+
+        var filledEvent = new OrderFilledEvent
+        {
+            OrderId = orderId,
+            Symbol = order.Symbol,
+            Quantity = order.Quantity,
+            ExecutionPrice = executionPrice,
+            FilledAt = DateTime.UtcNow
+        };
+
+        _orderFilledCallback?.Invoke(filledEvent);
+        
+        // Remove from conditional orders as it's now filled
+        if (_conditionalOrders.TryGetValue(order.Symbol, out var orders))
+        {
+            orders.Remove(orderId);
+        }
     }
 }

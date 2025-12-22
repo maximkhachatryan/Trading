@@ -3,6 +3,7 @@ using Bybit.Net.Enums;
 using CryptoExchange.Net.Authentication;
 using Trading.ApplicationContracts;
 using Trading.Domain.Constants;
+using Trading.Domain.Events;
 using Trading.Domain.ValueObjects;
 
 namespace Trading.ApplicationServices;
@@ -10,6 +11,8 @@ namespace Trading.ApplicationServices;
 public class BybitExchange : IExchange
 {
     private readonly BybitRestClient _client;
+    private readonly BybitSocketClient _socketClient;
+    private Action<OrderFilledEvent>? _orderFilledCallback;
 
     public BybitExchange()
     {
@@ -19,7 +22,16 @@ public class BybitExchange : IExchange
                 new ApiCredentials("APIKEY",
                     "APISECRET"); // <- Provide you API key/secret in these fields to retrieve data related to your account
         });
+        
+        BybitSocketClient.SetDefaultOptions(options =>
+        {
+            options.ApiCredentials =
+                new ApiCredentials("APIKEY",
+                    "APISECRET");
+        });
+        
         _client = new BybitRestClient();
+        _socketClient = new BybitSocketClient();
     }
 
     public async Task<List<string>> GetUntriggeredConditionalSpotOrderIds(string? symbol = null)
@@ -46,6 +58,77 @@ public class BybitExchange : IExchange
         Console.WriteLine(result.Error?.ToString());
         return false;
 
+    }
+
+    public async Task<ConditionalOrder> PlaceConditionalBuyOrder(string symbol, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
+    {
+        // Map domain enum to Bybit enum
+        var bybitTriggerDirection = triggerDirection switch
+        {
+            Domain.Enums.TriggerDirection.Rise => Bybit.Net.Enums.TriggerDirection.Rise,
+            Domain.Enums.TriggerDirection.Fall => Bybit.Net.Enums.TriggerDirection.Fall,
+            _ => throw new ArgumentException($"Invalid trigger direction: {triggerDirection}")
+        };
+
+        // Place conditional order
+        var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
+            category: Category.Spot,
+            symbol: symbol,
+            side: OrderSide.Buy,
+            type: NewOrderType.Market,
+            quantity: quantity,
+            triggerPrice: triggerPrice,
+            triggerDirection: bybitTriggerDirection,
+            orderFilter: OrderFilter.StopOrder);
+
+        if (!placeOrderResult.Success)
+        {
+            throw new Exception($"Failed to place conditional order: {placeOrderResult.Error}");
+        }
+
+        var order = placeOrderResult.Data;
+        
+        return new ConditionalOrder
+        {
+            OrderId = order.OrderId,
+            Symbol = symbol,
+            Quantity = quantity,
+            TriggerPrice = triggerPrice,
+            TriggerDirection = triggerDirection,
+            PlacedAt = DateTime.UtcNow
+        };
+    }
+
+    public async Task SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
+    {
+        _orderFilledCallback = onOrderFilled;
+
+        var subscriptionResult = await _socketClient.V5PrivateApi.SubscribeToOrderUpdatesAsync(
+            update =>
+            {
+                foreach (var order in update.Data)
+                {
+                    // Only process filled orders
+                    if (order.Status == OrderStatus.Filled)
+                    {
+                        var filledEvent = new OrderFilledEvent
+                        {
+                            OrderId = order.OrderId,
+                            Symbol = order.Symbol,
+                            Quantity = order.Quantity,
+                            ExecutionPrice = order.AveragePrice ?? 0,
+                            FilledAt = order.UpdateTime
+                        };
+
+                        _orderFilledCallback?.Invoke(filledEvent);
+                    }
+                }
+            });
+
+        if (!subscriptionResult.Success)
+        {
+            throw new Exception($"Failed to subscribe to order updates: {subscriptionResult.Error}");
+        }
     }
 
     // public async Task Buy(string symbol, decimal qty)
