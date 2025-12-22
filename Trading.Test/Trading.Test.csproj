@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Trading\Trading.csproj" />
+      <ProjectReference Include="..\Trading.ApplicationContracts\Trading.ApplicationContracts.csproj" />
     </ItemGroup>
 
 </Project>
