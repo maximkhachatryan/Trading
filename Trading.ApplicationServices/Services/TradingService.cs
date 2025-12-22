@@ -102,7 +102,10 @@ public class TradingService(
     private decimal CalculateSellPrice(Portfolio portfolio)
     {
         var portfolioAsset = GetPortfolioAsset(portfolio);
-        return portfolioAsset.AveragePriceIncludingFees * (1 + takeProfitRatio);
+        // Formula to ensure net profit (after selling fee) meets target:
+        // NetReceived = sellPrice * (1 - feePercentage)
+        // TargetNet = AveragePriceIncludingFees * (1 + takeProfitRatio)
+        return (portfolioAsset.AveragePriceIncludingFees * (1 + takeProfitRatio)) / (1 - sellFeePercentage / 100);
     }
 
     private decimal CalculateSellQuantity(Portfolio portfolio) =>
@@ -111,7 +114,29 @@ public class TradingService(
     private decimal CalculateBuyPrice(Portfolio portfolio)
     {
         var portfolioAsset = GetPortfolioAsset(portfolio);
-        return portfolioAsset.AveragePriceIncludingFees * (1 - priceDeviationRatio);
+        var targetAveragePrice = portfolioAsset.AveragePriceIncludingFees * (1 - priceDeviationRatio);
+        var totalFee = tradeValue * buyFeePercentage / 100;
+
+        // Formula derived from:
+        // targetAveragePrice = (CurrentCost + tradeValue + totalFee) / (CurrentBalance + tradeValue / buyPrice)
+        // targetAveragePrice * (CurrentBalance + tradeValue / buyPrice) = CurrentCost + tradeValue + totalFee
+        // targetAveragePrice * CurrentBalance + targetAveragePrice * tradeValue / buyPrice = CurrentCost + tradeValue + totalFee
+        // targetAveragePrice * tradeValue / buyPrice = CurrentCost + tradeValue + totalFee - targetAveragePrice * CurrentBalance
+        // targetAveragePrice * tradeValue / buyPrice = (CurrentCost - targetAveragePrice * CurrentBalance) + tradeValue + totalFee
+        
+        // Since targetAveragePrice = CurrentAveragePrice * (1 - priceDeviationRatio)
+        // And CurrentCost = CurrentAveragePrice * CurrentBalance
+        // CurrentCost - targetAveragePrice * CurrentBalance = CurrentAveragePrice * CurrentBalance - CurrentAveragePrice * (1 - priceDeviationRatio) * CurrentBalance
+        // = CurrentAveragePrice * CurrentBalance * (1 - (1 - priceDeviationRatio))
+        // = CurrentCost * priceDeviationRatio
+        
+        // targetAveragePrice * tradeValue / buyPrice = CurrentCost * priceDeviationRatio + tradeValue + totalFee
+        // buyPrice = (targetAveragePrice * tradeValue) / (CurrentCost * priceDeviationRatio + tradeValue + totalFee)
+        
+        var buyPrice = (targetAveragePrice * tradeValue) /
+                       (portfolioAsset.Cost * priceDeviationRatio + tradeValue + totalFee);
+
+        return buyPrice;
     }
 
     // private decimal? CalculateShortSellPrice(Portfolio portfolio, decimal currentPrice)
