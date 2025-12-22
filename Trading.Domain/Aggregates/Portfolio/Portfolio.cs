@@ -8,7 +8,7 @@ public class Portfolio : IAggregateRoot
     private readonly Dictionary<string, PortfolioAsset> _assets = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<Trade> _trades = new();
 
-    public int Id { get; set; }
+    //public int Id { get; set; }
     public required string SourceSymbol { get; set; }
     public decimal FundedCapital { get; set; }
 

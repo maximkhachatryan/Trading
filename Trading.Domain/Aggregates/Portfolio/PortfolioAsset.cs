@@ -2,8 +2,8 @@ namespace Trading.Domain.Aggregates.Portfolio;
 
 public class PortfolioAsset
 {
-    public int Id { get; set; }
-    public int PortfolioId { get; set; }
+    //public int Id { get; set; }
+    //public int PortfolioId { get; set; }
     public required string Symbol { get; set; }
     public decimal Balance { get; set; }
     public decimal AveragePrice { get; set; }
@@ -12,7 +12,7 @@ public class PortfolioAsset
     public decimal Cost => AveragePriceIncludingFees * Balance;
 
     // Navigation property
-    public Portfolio Portfolio { get; set; } = null!;
+    //public Portfolio Portfolio { get; set; } = null!;
 
     public static (decimal AveragePrice, decimal AveragePriceIncludingFees) CalculatePriceAfterBuying(
         PortfolioAsset portfolioAsset, decimal newPrice, decimal buyAmountSource, decimal fee)
