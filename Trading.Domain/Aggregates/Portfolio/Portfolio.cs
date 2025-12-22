@@ -9,7 +9,7 @@ public class Portfolio : IAggregateRoot
     private readonly List<Trade> _trades = new();
 
     //public int Id { get; set; }
-    public required string SourceSymbol { get; set; }
+    public string SourceSymbol { get; init; }
     public decimal FundedCapital { get; set; }
 
     // Collections for EF Core
@@ -19,9 +19,6 @@ public class Portfolio : IAggregateRoot
     // Read-only access to assets and trades
     public IReadOnlyDictionary<string, PortfolioAsset> Assets => _assets.AsReadOnly();
     public IReadOnlyList<Trade> Trades => _trades.AsReadOnly();
-
-    // Parameterless constructor for EF Core
-    private Portfolio() { }
 
     public Portfolio(string sourceSymbol, decimal balance, params string[] otherSymbols)
     {
@@ -64,11 +61,12 @@ public class Portfolio : IAggregateRoot
     public decimal CalculateCost(Dictionary<string, decimal> assetPrices)
         => _assets.Values.Sum(x => x.Balance * assetPrices[x.Symbol]);
 
-    public void Buy(DateTime dateTime, string symbol, decimal price, decimal sourceAmount, decimal totalFee = 0)
+    public void Buy(DateTime dateTime, string symbol, decimal price, decimal sourceAmount, decimal feePercentage = 0)
     {
         if (!_assets.ContainsKey(symbol))
             throw new InvalidOperationException($"Asset {symbol} is not in the portfolio.");
 
+        var totalFee = sourceAmount * feePercentage / 100;
         var sourceBalanceBefore = _assets[SourceSymbol].Balance;
         var assetAverageBalanceIncludingFeesBefore = _assets[symbol].Balance * _assets[symbol].AveragePriceIncludingFees;
         var assetActualBalanceBefore = _assets[symbol].Balance * price;
@@ -107,12 +105,13 @@ public class Portfolio : IAggregateRoot
         PortfolioTrades.Add(trade);
     }
 
-    public void Sell(DateTime dateTime, string symbol, decimal price, decimal sourceAmount, decimal totalFee = 0)
+    public void Sell(DateTime dateTime, string symbol, decimal price, decimal sourceAmount, decimal feePercentage = 0)
     {
         if (!_assets.ContainsKey(symbol))
             throw new InvalidOperationException($"Asset {symbol} is not in the portfolio.");
 
         var assetCount = sourceAmount / price;
+        var totalFee = sourceAmount * feePercentage / 100;
 
         var sourceBalanceBefore = _assets[SourceSymbol].Balance;
         var assetBalanceBefore = _assets[symbol].Balance;

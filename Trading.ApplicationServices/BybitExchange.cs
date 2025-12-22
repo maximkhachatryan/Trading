@@ -60,9 +60,16 @@ public class BybitExchange : IExchange
 
     }
 
-    public async Task<ConditionalOrder> PlaceConditionalBuyOrder(string symbol, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
+    public async Task<ConditionalOrder> PlaceConditionalOrder(string symbol, Domain.Enums.OrderSide side, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
     {
-        // Map domain enum to Bybit enum
+        // Map domain enums to Bybit enums
+        var bybitSide = side switch
+        {
+            Domain.Enums.OrderSide.Buy => Bybit.Net.Enums.OrderSide.Buy,
+            Domain.Enums.OrderSide.Sell => Bybit.Net.Enums.OrderSide.Sell,
+            _ => throw new ArgumentException($"Invalid order side: {side}")
+        };
+
         var bybitTriggerDirection = triggerDirection switch
         {
             Domain.Enums.TriggerDirection.Rise => Bybit.Net.Enums.TriggerDirection.Rise,
@@ -74,7 +81,7 @@ public class BybitExchange : IExchange
         var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
             category: Category.Spot,
             symbol: symbol,
-            side: OrderSide.Buy,
+            side: bybitSide,
             type: NewOrderType.Market,
             quantity: quantity,
             triggerPrice: triggerPrice,
@@ -109,12 +116,17 @@ public class BybitExchange : IExchange
                 foreach (var order in update.Data)
                 {
                     // Only process filled orders
-                    if (order.Status == OrderStatus.Filled)
+                    if (order.Status == Bybit.Net.Enums.OrderStatus.Filled)
                     {
+                        var side = order.Side == Bybit.Net.Enums.OrderSide.Buy 
+                            ? Domain.Enums.OrderSide.Buy 
+                            : Domain.Enums.OrderSide.Sell;
+
                         var filledEvent = new OrderFilledEvent
                         {
                             OrderId = order.OrderId,
                             Symbol = order.Symbol,
+                            Side = side,
                             Quantity = order.Quantity,
                             ExecutionPrice = order.AveragePrice ?? 0,
                             FilledAt = order.UpdateTime

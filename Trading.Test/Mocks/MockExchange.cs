@@ -85,7 +85,7 @@ public class MockExchange : IExchange
         return Task.FromResult(false);
     }
 
-    public Task<ConditionalOrder> PlaceConditionalBuyOrder(string symbol, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
+    public Task<ConditionalOrder> PlaceConditionalOrder(string symbol, Domain.Enums.OrderSide side, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
     {
         var orderId = $"MOCK-{_orderIdCounter++}";
         
@@ -114,7 +114,7 @@ public class MockExchange : IExchange
     /// <summary>
     /// Helper method for testing: simulates an order being filled
     /// </summary>
-    public void SimulateOrderFilled(string orderId, decimal executionPrice)
+    public void SimulateOrderFilled(string orderId, Domain.Enums.OrderSide side, decimal executionPrice)
     {
         if (!_placedOrders.TryGetValue(orderId, out var order))
         {
@@ -125,6 +125,7 @@ public class MockExchange : IExchange
         {
             OrderId = orderId,
             Symbol = order.Symbol,
+            Side = side,
             Quantity = order.Quantity,
             ExecutionPrice = executionPrice,
             FilledAt = DateTime.UtcNow
