@@ -6,4 +6,7 @@ public class Portfolio : IAggregateRoot
 {
     public int Id { get; set; }
     public string SourceSymbol { get; set; } = null!;
+    public decimal FundedCapital { get; set; }
+    
+    
 }

@@ -22,61 +22,87 @@ public class BybitExchange : IExchange
         _client = new BybitRestClient();
     }
 
-    public async Task Buy(string symbol, decimal qty)
+    public async Task<List<string>> GetUntriggeredConditionalSpotOrderIds(string? symbol = null)
     {
-        var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
-            category: Category.Spot, symbol: symbol, OrderSide.Buy, NewOrderType.Market, quantity: qty);
-        if (!placeOrderResult.Success)
-        {
-            Console.WriteLine($"Place order failed: {placeOrderResult.Error}");
-            return;
-        }
-        var order = placeOrderResult.Data;
-        Console.WriteLine($"Order placed — OrderId: {order.OrderId}, ClientOrderId: {order.ClientOrderId}");
+        var result = await _client.V5Api.Trading.GetOrdersAsync(
+            symbol: symbol,
+            category: Category.Spot,
+            orderFilter: OrderFilter.StopOrder
+        );
 
-        
-        var balanceResult = await _client.V5Api.Account.GetAssetBalanceAsync(AccountType.Spot, symbol);
-        if (!balanceResult.Success)
-        {
-            Console.WriteLine($"Balance fetch failed: {balanceResult.Error}");
-        }
-        else
-        {
-        }
+        return result.Data.List.Select(o => o.OrderId).ToList();
     }
 
-    public async Task BuyConditional(string symbol, decimal qty, decimal triggerPrice)
+    public async Task<bool> CancelAllUntriggeredConditionalSpotOrder(string? symbol = null)
     {
-        var tickerResult = await _client.V5Api.ExchangeData.GetSpotTickersAsync(symbol);
-        if (!tickerResult.Success || !tickerResult.Data.List.Any())
-        {
-            Console.WriteLine($"Ticker fetch failed: {tickerResult.Error}");
-            return;
-        }
-
-        var currentPrice = tickerResult.Data.List.First().LastPrice;
-        var triggerDirection = triggerPrice > currentPrice ? TriggerDirection.Rise : TriggerDirection.Fall;
-
-        var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
-            category: Category.Spot,
-            symbol: symbol,
-            side: OrderSide.Buy,
-            type: NewOrderType.Market,
-            quantity: qty,
-            triggerPrice: triggerPrice,
-            triggerDirection: triggerDirection,
+        var result = await _client.V5Api.Trading.CancelAllOrderAsync(symbol: symbol, category: Category.Spot,
             orderFilter: OrderFilter.StopOrder);
 
-        if (!placeOrderResult.Success)
+        if (result.Success)
         {
-            Console.WriteLine($"Place conditional order failed: {placeOrderResult.Error}");
-            return;
+            return true;
         }
+        
+        Console.WriteLine(result.Error?.ToString());
+        return false;
 
-        var order = placeOrderResult.Data;
-        Console.WriteLine($"Conditional Order placed — OrderId: {order.OrderId}, ClientOrderId: {order.ClientOrderId}");
     }
-    
+
+    // public async Task Buy(string symbol, decimal qty)
+    // {
+    //     var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
+    //         category: Category.Spot, symbol: symbol, OrderSide.Buy, NewOrderType.Market, quantity: qty);
+    //     if (!placeOrderResult.Success)
+    //     {
+    //         Console.WriteLine($"Place order failed: {placeOrderResult.Error}");
+    //         return;
+    //     }
+    //     var order = placeOrderResult.Data;
+    //     Console.WriteLine($"Order placed — OrderId: {order.OrderId}, ClientOrderId: {order.ClientOrderId}");
+    //
+    //     
+    //     var balanceResult = await _client.V5Api.Account.GetAssetBalanceAsync(AccountType.Spot, symbol);
+    //     if (!balanceResult.Success)
+    //     {
+    //         Console.WriteLine($"Balance fetch failed: {balanceResult.Error}");
+    //     }
+    //     else
+    //     {
+    //     }
+    // }
+    //
+    // public async Task BuyConditional(string symbol, decimal qty, decimal triggerPrice)
+    // {
+    //     var tickerResult = await _client.V5Api.ExchangeData.GetSpotTickersAsync(symbol);
+    //     if (!tickerResult.Success || !tickerResult.Data.List.Any())
+    //     {
+    //         Console.WriteLine($"Ticker fetch failed: {tickerResult.Error}");
+    //         return;
+    //     }
+    //
+    //     var currentPrice = tickerResult.Data.List.First().LastPrice;
+    //     var triggerDirection = triggerPrice > currentPrice ? TriggerDirection.Rise : TriggerDirection.Fall;
+    //
+    //     var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
+    //         category: Category.Spot,
+    //         symbol: symbol,
+    //         side: OrderSide.Buy,
+    //         type: NewOrderType.Market,
+    //         quantity: qty,
+    //         triggerPrice: triggerPrice,
+    //         triggerDirection: triggerDirection,
+    //         orderFilter: OrderFilter.StopOrder);
+    //
+    //     if (!placeOrderResult.Success)
+    //     {
+    //         Console.WriteLine($"Place conditional order failed: {placeOrderResult.Error}");
+    //         return;
+    //     }
+    //
+    //     var order = placeOrderResult.Data;
+    //     Console.WriteLine($"Conditional Order placed — OrderId: {order.OrderId}, ClientOrderId: {order.ClientOrderId}");
+    // }
+
     public async Task<Kline[]> GetKlines(string symbol, Interval interval, int totalLimit, DateTime? endTime = null)
     {
         const int maxLimitPerRequest = 1000; // Bybit max per request
@@ -117,7 +143,7 @@ public class BybitExchange : IExchange
 
             // Move endTime backward for next batch
             var earliest = klinesBatch.Min(k => k.StartTime);
-            currentEndTime = earliest.AddSeconds(-intervalSeconds); 
+            currentEndTime = earliest.AddSeconds(-intervalSeconds);
         }
 
         // Return candles in chronological order
