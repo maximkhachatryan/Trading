@@ -1,8 +1,8 @@
-using System.Linq.Expressions;
+using Trading.Domain.Aggregates.Portfolio;
 
 namespace Trading.Domain.Contracts;
 
 public interface IPortfolioRepository
 {
-    
+    Task<Portfolio?> GetActivePortfolio();
 }
