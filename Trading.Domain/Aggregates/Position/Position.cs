@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Trading.Domain.Enums;
 
 namespace Trading.Domain.Aggregates.Position;
@@ -6,7 +7,30 @@ public class Position
 {
     public string SourceSymbol { get; set; } = null!;
     public string AssetSymbol { get; set; } = null!;
-    public IReadOnlyList<Trade> Trades { get; set; } = new List<Trade>();
+
+    public void Buy(decimal quantity, decimal netPrice, DateTime timestamp)
+    {
+        Trades.Add(new Trade
+        {
+            TimeStamp = timestamp,
+            ActionType = TradeActionType.Buy,
+            NetPrice = netPrice,
+            Quantity = quantity
+        });
+    }
+    
+    public void Sell(decimal quantity, decimal netPrice, DateTime timestamp)
+    {
+        Trades.Add(new Trade
+        {
+            TimeStamp = timestamp,
+            ActionType = TradeActionType.Sell,
+            NetPrice = netPrice,
+            Quantity = quantity
+        });
+    }
+    
+    public List<Trade> Trades { get; set; } = new List<Trade>();
 
     public (decimal Quantity, decimal Cost, decimal? AverageNetPrice) Metrics
     {
