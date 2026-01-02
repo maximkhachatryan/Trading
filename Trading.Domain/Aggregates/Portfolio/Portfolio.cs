@@ -88,7 +88,7 @@ public class Portfolio : IAggregateRoot
         var trade = new Trade
         {
             TimeStamp = dateTime,
-            ActionType = PortfolioActionType.Buy,
+            ActionType = TradeActionType.Buy,
             AssetSymbol = symbol,
             AssetPrice = price,
             AssetsTraded = assetCount,
@@ -133,7 +133,7 @@ public class Portfolio : IAggregateRoot
         var trade = new Trade
         {
             TimeStamp = dateTime,
-            ActionType = PortfolioActionType.Sell,
+            ActionType = TradeActionType.Sell,
             AssetSymbol = symbol,
             AssetPrice = price,
             AssetsTraded = assetCount,

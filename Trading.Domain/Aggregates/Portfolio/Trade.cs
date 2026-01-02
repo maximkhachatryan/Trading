@@ -7,7 +7,7 @@ public class Trade
     //public int Id { get; set; }
     //public int PortfolioId { get; set; }
     public DateTime TimeStamp { get; set; }
-    public PortfolioActionType ActionType { get; set; }
+    public TradeActionType ActionType { get; set; }
     public required string AssetSymbol { get; set; }
     public decimal AssetPrice { get; set; }
     public decimal AssetsTraded { get; set; }

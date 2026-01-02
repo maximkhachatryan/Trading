@@ -1,6 +1,6 @@
 namespace Trading.Domain.Enums;
 
-public enum PortfolioActionType
+public enum TradeActionType
 {
     Buy = 1,
     Sell = 2
