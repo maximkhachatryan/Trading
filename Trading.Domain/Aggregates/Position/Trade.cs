@@ -2,11 +2,12 @@ using Trading.Domain.Enums;
 
 namespace Trading.Domain.Aggregates.Position;
 
-public class Trade
+public record Trade
 {
-    public DateTime TimeStamp { get; set; }
-    public TradeActionType ActionType { get; set; }
-    public decimal NetPrice { get; set; }
-    public decimal Quantity { get; set; }
+    public string OrderId { get; init; } = null!;
+    public DateTime TimeStamp { get; init; }
+    public TradeActionType ActionType { get; init; }
+    public decimal NetPrice { get; init; }
+    public decimal Quantity { get; init; }
     
 }

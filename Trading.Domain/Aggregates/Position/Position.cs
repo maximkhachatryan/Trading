@@ -8,10 +8,11 @@ public class Position
     public string SourceSymbol { get; set; } = null!;
     public string AssetSymbol { get; set; } = null!;
 
-    public void Buy(decimal quantity, decimal netPrice, DateTime timestamp)
+    public void Buy(string orderId, decimal quantity, decimal netPrice, DateTime timestamp)
     {
         Trades.Add(new Trade
         {
+            OrderId = orderId,
             TimeStamp = timestamp,
             ActionType = TradeActionType.Buy,
             NetPrice = netPrice,
@@ -19,10 +20,11 @@ public class Position
         });
     }
     
-    public void Sell(decimal quantity, decimal netPrice, DateTime timestamp)
+    public void Sell(string orderId, decimal quantity, decimal netPrice, DateTime timestamp)
     {
         Trades.Add(new Trade
         {
+            OrderId = orderId,
             TimeStamp = timestamp,
             ActionType = TradeActionType.Sell,
             NetPrice = netPrice,

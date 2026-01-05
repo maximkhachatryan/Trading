@@ -15,16 +15,16 @@ public class MainTradingStrategy(
     decimal sellFeePercentage
 )
 {
-    public void Buy(decimal quantity, decimal grossPrice, DateTime timestamp)
+    public void Buy(string orderId, decimal quantity, decimal grossPrice, DateTime timestamp)
     {
         var netPrice = PriceHelper.CalculateNetPriceForBuy(grossPrice, buyFeePercentage);
-        position.Buy(quantity, netPrice, timestamp);
+        position.Buy(orderId, quantity, netPrice, timestamp);
     }
     
-    public void Sell(decimal quantity, decimal grossPrice, DateTime timestamp)
+    public void Sell(string orderId, decimal quantity, decimal grossPrice, DateTime timestamp)
     {
         var netPrice = PriceHelper.CalculateNetPriceForSell(grossPrice, sellFeePercentage);
-        position.Sell(quantity, netPrice, timestamp);
+        position.Sell(orderId, quantity, netPrice, timestamp);
     }
 
     public List<ConditionalOrderRequest>? GetOrderRequests()
