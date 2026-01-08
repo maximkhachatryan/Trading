@@ -1,19 +1,27 @@
 using Trading.ApplicationContracts.Dtos.Position;
 using Trading.ApplicationContracts.Services;
+using Trading.Domain.Aggregates.Position;
 using Trading.Domain.Contracts;
 
 namespace Trading.ApplicationServices.Services;
 
 public class ActivePositionService(IActivePositionRepository activePositionRepository) : IActivePositionService
 {
-    public Task<bool> OpenPosition(string symbol, decimal sourceAmount)
+    public async Task<bool> OpenPosition(string symbol, decimal sourceAmount)
     {
-        return Task.FromResult(true);
+        var position = new Position()
+        {
+            AssetSymbol = symbol,
+            SourceSymbol = "USDT"
+        };
+        var assumedNetPrice = 90000m;
+        position.Buy("1", sourceAmount / assumedNetPrice, assumedNetPrice, DateTime.UtcNow);
+        return await activePositionRepository.TryAdd(position);
     }
 
-    public Task ExitPosition(string symbol)
+    public async Task<bool> ExitPosition(string symbol)
     {
-        return Task.CompletedTask;
+        return await activePositionRepository.TryRemove(symbol);
     }
 
     public async Task<PositionDetailsDto?> GetOpenPosition(string symbol)

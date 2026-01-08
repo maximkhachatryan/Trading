@@ -2,7 +2,7 @@ namespace Trading.Infrastructure.Persistence.FileStorage;
 
 using System.Text.Json;
 
-public static class FilePersistence
+internal static class FilePersistence
 {
     private static readonly string RootDirectory = Environment.GetEnvironmentVariable("APP_DATA_PATH")
                                                    ?? Path.Combine(AppContext.BaseDirectory, "data");

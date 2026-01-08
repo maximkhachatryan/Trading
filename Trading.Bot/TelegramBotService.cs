@@ -46,29 +46,39 @@ public class TelegramBotService(
             {
                 case "/get_open_positions":
                     var openPositions = await positionService.GetOpenPositions();
-                    await bot.SendMessage(
-                        message.Chat.Id,
-                        JsonSerializer.Serialize(openPositions),
-                        cancellationToken: ct);
+                    if (openPositions.Count == 0)
+                    {
+                        await bot.SendMessage(message.Chat.Id, "No open positions.", cancellationToken: ct);
+                    }
+                    else
+                    {
+                        var response = "Open Positions:\n" + string.Join("\n", openPositions.Select(p => 
+                            $"- {p.Key}: Qty {p.Value.Quantity:F4}, Avg Price {p.Value.AverageNetPrice:F2}, Cost {p.Value.Cost:F2} {p.Value.SourceSymbol}"));
+                        await bot.SendMessage(message.Chat.Id, response, cancellationToken: ct);
+                    }
                     break;
                 case "/open_position":
-                    if (parts.Length < 2)
+                    if (parts.Length < 3)
                         return;
                     var symbol = parts[1];
+                    if (!decimal.TryParse(parts[2], out var amount))
+                    {
+                        return;
+                    }
                     
-                    var opened = await positionService.OpenPosition(symbol, 10);
+                    var opened = await positionService.OpenPosition(symbol, amount);
                     if (opened)
                     {
                         await bot.SendMessage(
                             message.Chat.Id,
-                            $"✅ Position opened for {symbol}",
+                            $"✅ Position opened for {symbol} with {amount} USDT",
                             cancellationToken: ct);
                     }
                     else
                     {
                         await bot.SendMessage(
                             message.Chat.Id,
-                            $"❌ Cannot open position for {symbol}",
+                            $"⚠️ Position already exists for {symbol}",
                             cancellationToken: ct);
                     }
                     break;
@@ -77,11 +87,21 @@ public class TelegramBotService(
                     if (parts.Length < 2)
                         return;
                     symbol = parts[1];
-                    await positionService.ExitPosition(symbol);
-                    await bot.SendMessage(
-                        message.Chat.Id,
-                        $"❌ Unsubscribed from {symbol}",
-                        cancellationToken: ct);
+                    var exited = await positionService.ExitPosition(symbol);
+                    if (exited)
+                    {
+                        await bot.SendMessage(
+                            message.Chat.Id,
+                            $"✅ Successfully exited position for {symbol}",
+                            cancellationToken: ct);
+                    }
+                    else
+                    {
+                        await bot.SendMessage(
+                            message.Chat.Id,
+                            $"⚠️ No active position found for {symbol}",
+                            cancellationToken: ct);
+                    }
                     break;
             }
         }

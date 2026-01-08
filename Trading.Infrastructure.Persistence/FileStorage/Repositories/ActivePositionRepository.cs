@@ -17,4 +17,28 @@ public class ActivePositionRepository() : IActivePositionRepository
         var activePositions = await GetActivePositions();
         return activePositions.GetValueOrDefault(symbol);
     }
+
+    public async Task<bool> TryAdd(Position position)
+    {
+        var activePositions = await GetActivePositions();
+        if (!activePositions.TryAdd(position.AssetSymbol, position))
+        {
+            return false;
+        }
+
+        await FilePersistence.SaveAsync(activePositions, FileName);
+        return true;
+    }
+
+    public async Task<bool> TryRemove(string symbol)
+    {
+        var activePositions = await GetActivePositions();
+        if (!activePositions.Remove(symbol))
+        {
+            return false;
+        }
+
+        await FilePersistence.SaveAsync(activePositions, FileName);
+        return true;
+    }
 }
