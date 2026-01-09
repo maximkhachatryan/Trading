@@ -9,18 +9,21 @@ public class ActivePositionService(IActivePositionRepository activePositionRepos
 {
     public async Task<bool> OpenPosition(string symbol, decimal sourceAmount)
     {
-        var position = new Position()
+        var position = new Position
         {
             AssetSymbol = symbol,
             SourceSymbol = "USDT"
         };
-        var assumedNetPrice = 90000m;
-        position.Buy("1", sourceAmount / assumedNetPrice, assumedNetPrice, DateTime.UtcNow);
         return await activePositionRepository.TryAdd(position);
+        //TODO: Start listening to the trades of opened position (to catch the trade will be done manually afterwards)
     }
 
     public async Task<bool> ExitPosition(string symbol)
     {
+        //TODO: Remove all conditional orders
+        //TODO: Sell assets of the given symbol by market price
+        //TODO: Wait for 10 seconds for the last trade to be sent via socket
+        //TODO: Gracefully unsubscribe from the socket
         return await activePositionRepository.TryRemove(symbol);
     }
 
@@ -56,5 +59,14 @@ public class ActivePositionService(IActivePositionRepository activePositionRepos
             Cost = kv.Value.Metrics.Cost,
             Quantity = kv.Value.Metrics.Quantity
         })).ToDictionary();
+    }
+
+    public async Task StartTrading()
+    {
+        //Cancel all spot conditional orders for all symbols.
+        //Get all active positions
+        //Get all trades from each position start date. Update position based on missed buy/sell trades. Don't forget to save position.
+        //Start listening to the active positions symbols.
+        //Place conditional orders
     }
 }

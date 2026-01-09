@@ -32,7 +32,7 @@ public class Position
         });
     }
     
-    public List<Trade> Trades { get; set; } = new List<Trade>();
+    public List<Trade> Trades { get; set; } = [];
 
     public (decimal Quantity, decimal Cost, decimal? AverageNetPrice) Metrics
     {
