@@ -7,18 +7,18 @@ namespace Trading.ApplicationServices.Services;
 
 public class ActivePositionService(IActivePositionRepository activePositionRepository) : IActivePositionService
 {
-    public async Task<bool> OpenPosition(string symbol, decimal sourceAmount)
+    public async Task<bool> OpenPosition(string assetSymbol, decimal sourceAmount)
     {
         var position = new Position
         {
-            AssetSymbol = symbol,
+            AssetSymbol = assetSymbol,
             SourceSymbol = "USDT"
         };
         return await activePositionRepository.TryAdd(position);
         //TODO: Start listening to the trades of opened position (to catch the trade will be done manually afterwards)
     }
 
-    public async Task<bool> ExitPosition(string symbol)
+    public async Task<bool> ExitPosition(string symbol)//symbol = "ETHUSDT"
     {
         //TODO: Remove all conditional orders
         //TODO: Sell assets of the given symbol by market price
@@ -27,7 +27,7 @@ public class ActivePositionService(IActivePositionRepository activePositionRepos
         return await activePositionRepository.TryRemove(symbol);
     }
 
-    public async Task<PositionDetailsDto?> GetOpenPosition(string symbol)
+    public async Task<PositionDetailsDto?> GetOpenPosition(string symbol)//symbol = "ETHUSDT"
     {
         var activePosition = await activePositionRepository.GetActivePosition(symbol);
 

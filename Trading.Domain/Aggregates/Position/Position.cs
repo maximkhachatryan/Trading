@@ -8,6 +8,8 @@ public class Position
     public string SourceSymbol { get; set; } = null!;
     public string AssetSymbol { get; set; } = null!;
 
+    public string Symbol => $"{AssetSymbol}{SourceSymbol}";
+
     public void Buy(string orderId, decimal quantity, decimal netPrice, DateTime timestamp)
     {
         Trades.Add(new Trade

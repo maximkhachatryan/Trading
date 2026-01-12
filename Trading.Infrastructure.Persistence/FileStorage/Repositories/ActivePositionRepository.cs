@@ -21,10 +21,24 @@ public class ActivePositionRepository() : IActivePositionRepository
     public async Task<bool> TryAdd(Position position)
     {
         var activePositions = await GetActivePositions();
-        if (!activePositions.TryAdd(position.AssetSymbol, position))
+        if (!activePositions.TryAdd(position.Symbol, position))
         {
             return false;
         }
+
+        await FilePersistence.SaveAsync(activePositions, FileName);
+        return true;
+    }
+    
+    public async Task<bool> TryUpdate(Position position)
+    {
+        var activePositions = await GetActivePositions();
+        if (!activePositions.ContainsKey(position.Symbol))
+        {
+            return false;
+        }
+
+        activePositions[position.Symbol] = position;
 
         await FilePersistence.SaveAsync(activePositions, FileName);
         return true;
