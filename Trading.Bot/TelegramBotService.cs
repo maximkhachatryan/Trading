@@ -60,25 +60,22 @@ public class TelegramBotService(
                 case "/open_position":
                     if (parts.Length < 3)
                         return;
-                    var symbol = parts[1];
-                    if (!decimal.TryParse(parts[2], out var amount))
-                    {
-                        return;
-                    }
+                    var assetSymbol = parts[1];
+                    var sourceSymbol = parts[2];
                     
-                    var opened = await positionService.OpenPosition(symbol, amount);
+                    var opened = await positionService.OpenPosition(assetSymbol, sourceSymbol);
                     if (opened)
                     {
                         await bot.SendMessage(
                             message.Chat.Id,
-                            $"✅ Position opened for {symbol} with {amount} USDT",
+                            $"✅ Position opened for {assetSymbol}{sourceSymbol}",
                             cancellationToken: ct);
                     }
                     else
                     {
                         await bot.SendMessage(
                             message.Chat.Id,
-                            $"⚠️ Position already exists for {symbol}",
+                            $"⚠️ Position already exists for {assetSymbol}{sourceSymbol}",
                             cancellationToken: ct);
                     }
                     break;
@@ -86,20 +83,20 @@ public class TelegramBotService(
                 case "/exit_position":
                     if (parts.Length < 2)
                         return;
-                    symbol = parts[1];
-                    var exited = await positionService.ExitPosition(symbol);
+                    assetSymbol = parts[1];
+                    var exited = await positionService.ExitPosition(assetSymbol);
                     if (exited)
                     {
                         await bot.SendMessage(
                             message.Chat.Id,
-                            $"✅ Successfully exited position for {symbol}",
+                            $"✅ Successfully exited position for {assetSymbol}",
                             cancellationToken: ct);
                     }
                     else
                     {
                         await bot.SendMessage(
                             message.Chat.Id,
-                            $"⚠️ No active position found for {symbol}",
+                            $"⚠️ No active position found for {assetSymbol}",
                             cancellationToken: ct);
                     }
                     break;

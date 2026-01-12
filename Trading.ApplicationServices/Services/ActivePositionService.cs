@@ -7,12 +7,12 @@ namespace Trading.ApplicationServices.Services;
 
 public class ActivePositionService(IActivePositionRepository activePositionRepository) : IActivePositionService
 {
-    public async Task<bool> OpenPosition(string assetSymbol, decimal sourceAmount)
+    public async Task<bool> OpenPosition(string assetSymbol, string sourceSymbol)
     {
         var position = new Position
         {
             AssetSymbol = assetSymbol,
-            SourceSymbol = "USDT"
+            SourceSymbol = sourceSymbol
         };
         return await activePositionRepository.TryAdd(position);
         //TODO: Start listening to the trades of opened position (to catch the trade will be done manually afterwards)
