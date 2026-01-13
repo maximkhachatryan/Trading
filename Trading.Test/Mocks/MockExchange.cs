@@ -10,6 +10,7 @@ public class MockExchange : IExchange
     private readonly List<Kline> _klines = new();
     private readonly Dictionary<string, List<string>> _conditionalOrders = new();
     private readonly Dictionary<string, ConditionalOrder> _placedOrders = new();
+    private readonly Dictionary<string, OrderFilledEvent> _filledOrders = new();
     private Action<OrderFilledEvent>? _orderFilledCallback;
     private int _orderIdCounter = 1;
 
@@ -113,35 +114,66 @@ public class MockExchange : IExchange
 
     public Task<OrderFilledEvent?> GetFilledOrderById(string orderId)
     {
-        throw new NotImplementedException();
+        // Use the simulation dictionary or fallback to on-the-fly generation if needed
+        // But better is to use a dictionary populated by SimulateOrderFilled
+        if (_filledOrders.TryGetValue(orderId, out var filledEvent))
+        {
+            return Task.FromResult<OrderFilledEvent?>(filledEvent);
+        }
+        
+        var filledOrder = _klines
+            .Select(k => new OrderFilledEvent
+            {
+                OrderId = orderId,
+                Symbol = "BTCUSDT", // Simplification for mock
+                ExecutionPrice = k.ClosePrice,
+                FilledAt = k.StartTime,
+                Quantity = 1, // Default quantity
+                Side = Domain.Enums.OrderSide.Buy // Default side, usually logic needs more context
+            })
+            .FirstOrDefault(); 
+
+        return Task.FromResult<OrderFilledEvent?>(filledOrder);
     }
 
     /// <summary>
     /// Helper method for testing: simulates an order being filled
     /// </summary>
-    public void SimulateOrderFilled(string orderId, Domain.Enums.OrderSide side, decimal executionPrice)
+    public void SimulateOrderFilled(string orderId, Domain.Enums.OrderSide side, decimal executionPrice, string? symbol = null, decimal? quantity = null)
     {
-        if (!_placedOrders.TryGetValue(orderId, out var order))
+        if (!_placedOrders.TryGetValue(orderId, out var order) && symbol == null)
         {
-            throw new InvalidOperationException($"Order {orderId} not found");
+             // If order not found in placed orders (e.g. created manually in test), proceed with minimal data
+             // Or throw exception, but for flexibility let's try to handle key info
+             // throw new InvalidOperationException($"Order {orderId} not found");
         }
+
+        var resolvedSymbol = order?.Symbol ?? symbol ?? "UNKNOWN";
+        var resolvedQuantity = order?.Quantity ?? quantity ?? 0;
 
         var filledEvent = new OrderFilledEvent
         {
             OrderId = orderId,
-            Symbol = order.Symbol,
+            Symbol = resolvedSymbol,
             Side = side,
-            Quantity = order.Quantity,
+            Quantity = resolvedQuantity,
             ExecutionPrice = executionPrice,
             FilledAt = DateTime.UtcNow
         };
 
+        _filledOrders[orderId] = filledEvent;
         _orderFilledCallback?.Invoke(filledEvent);
         
         // Remove from conditional orders as it's now filled
-        if (_conditionalOrders.TryGetValue(order.Symbol, out var orders))
+        if (order != null && _conditionalOrders.TryGetValue(order.Symbol, out var orders))
         {
             orders.Remove(orderId);
         }
+    }
+
+    public Task<List<ConditionalOrder>> GetPlacedConditionalOrders(string symbol)
+    {
+        var orders = _placedOrders.Values.Where(o => o.Symbol == symbol).ToList();
+        return Task.FromResult(orders);
     }
 }

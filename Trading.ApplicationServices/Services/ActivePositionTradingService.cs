@@ -55,7 +55,7 @@ public class ActivePositionTradingService(
         var positions = await activePositionRepository.GetActivePositions();
         foreach (var position in positions.Values) 
         {
-            foreach (var waitingOrder in position.WaitingOrders)
+            foreach (var waitingOrder in position.WaitingOrders.ToList())
             {
                 var filledOrder = await exchange.GetFilledOrderById(waitingOrder.OrderId);
 

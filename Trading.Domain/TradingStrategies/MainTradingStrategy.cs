@@ -76,7 +76,7 @@ public class MainTradingStrategy(
         var sellGrossPrice = PriceHelper.CalculateGrossPriceForSell(sellNetPrice, sellFeePercentage);
         var finalSellOrder = new ConditionalOrderRequest
         {
-            Symbol = position.AssetSymbol,
+            Symbol = position.Symbol,
             TriggerDirection = TriggerDirection.Rise,
             Quantity = metrics.Quantity,
             TriggerPrice = sellGrossPrice
@@ -88,7 +88,7 @@ public class MainTradingStrategy(
         var buyGrossPrice = PriceHelper.CalculateGrossPriceForBuy(buyNetPrice, buyFeePercentage);
         var buyOrder = new ConditionalOrderRequest
         {
-            Symbol = position.AssetSymbol,
+            Symbol = position.Symbol,
             TriggerDirection = TriggerDirection.Fall,
             Quantity = tradeValue / buyGrossPrice,
             TriggerPrice = buyGrossPrice
@@ -101,7 +101,7 @@ public class MainTradingStrategy(
 
         var shortSellOrder = new ConditionalOrderRequest
         {
-            Symbol = position.AssetSymbol,
+            Symbol = position.Symbol,
             TriggerDirection = TriggerDirection.Rise,
             Quantity = tradeValue.IncreaseByPercentage(takeProfitPercentage) / shortSellGrossPrice,
             TriggerPrice = buyGrossPrice
