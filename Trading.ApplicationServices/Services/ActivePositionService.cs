@@ -15,7 +15,6 @@ public class ActivePositionService(IActivePositionRepository activePositionRepos
             SourceSymbol = sourceSymbol
         };
         return await activePositionRepository.TryAdd(position);
-        //TODO: Start listening to the trades of opened position (to catch the trade will be done manually afterwards)
     }
 
     public async Task<bool> ExitPosition(string symbol)//symbol = "ETHUSDT"
