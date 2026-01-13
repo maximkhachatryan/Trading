@@ -1,17 +1,25 @@
+using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using Trading.Domain.Enums;
+using Trading.Domain.Helpers;
+using Trading.Domain.ValueObjects;
 
 namespace Trading.Domain.Aggregates.Position;
 
 public class Position
 {
+    private readonly Dictionary<string, ConditionalOrder> _waitingOrders = new();
+
+    public IReadOnlyCollection<ConditionalOrder> WaitingOrders => _waitingOrders.Values;
     public string SourceSymbol { get; set; } = null!;
     public string AssetSymbol { get; set; } = null!;
 
     public string Symbol => $"{AssetSymbol}{SourceSymbol}";
 
-    public void Buy(string orderId, decimal quantity, decimal netPrice, DateTime timestamp)
+
+    public void Buy(string orderId, decimal quantity, decimal grossPrice, decimal buyFeePercentage, DateTime timestamp)
     {
+        var netPrice = PriceHelper.CalculateNetPriceForBuy(grossPrice, buyFeePercentage);
         Trades.Add(new Trade
         {
             OrderId = orderId,
@@ -20,10 +28,12 @@ public class Position
             NetPrice = netPrice,
             Quantity = quantity
         });
+        _waitingOrders.Remove(orderId);
     }
-    
-    public void Sell(string orderId, decimal quantity, decimal netPrice, DateTime timestamp)
+
+    public void Sell(string orderId, decimal quantity, decimal grossPrice, decimal sellFeePercentage, DateTime timestamp)
     {
+        var netPrice = PriceHelper.CalculateNetPriceForSell(grossPrice, sellFeePercentage);
         Trades.Add(new Trade
         {
             OrderId = orderId,
@@ -32,8 +42,15 @@ public class Position
             NetPrice = netPrice,
             Quantity = quantity
         });
+        _waitingOrders.Remove(orderId);
     }
-    
+
+    public void AddWaitingOrder(ConditionalOrder order) => _waitingOrders[order.OrderId] = order;
+
+
+    public void ClearWaitingOrders() => _waitingOrders.Clear();
+
+
     public List<Trade> Trades { get; set; } = [];
 
     public (decimal Quantity, decimal Cost, decimal? AverageNetPrice) Metrics
@@ -44,7 +61,7 @@ public class Position
             {
                 return (Quantity: 0, Cost: 0, AverageNetPrice: null);
             }
-            
+
             var totalQuantity = 0m;
             var totalCost = 0m;
 

@@ -5,6 +5,7 @@ using Trading.ApplicationContracts;
 using Trading.Domain.Constants;
 using Trading.Domain.Events;
 using Trading.Domain.ValueObjects;
+using OrderSide = Trading.Domain.Enums.OrderSide;
 
 namespace Trading.ApplicationServices;
 
@@ -32,6 +33,32 @@ public class BybitExchange : IExchange
         
         _client = new BybitRestClient();
         _socketClient = new BybitSocketClient();
+    }
+
+    public async Task<OrderFilledEvent?> GetFilledOrderById(string orderId)
+    {
+        var result = await _client.V5Api.Trading.GetOrdersAsync(category: Category.Spot, orderId: orderId);
+
+        if (result.Success)
+        {
+            return null;
+        }
+
+        var order = result.Data.List.FirstOrDefault();
+        if (order == null || order.Status != OrderStatus.Filled)
+        {
+            return null;
+        }
+
+        return new OrderFilledEvent
+        {
+            OrderId = order.OrderId,
+            Symbol = order.Symbol,
+            Side = OrderSide.Buy,
+            Quantity = order.Quantity,
+            ExecutionPrice = order.AveragePrice ?? 0m,
+            FilledAt = order.UpdateTime
+        };
     }
 
     public async Task<List<string>> GetUntriggeredConditionalSpotOrderIds(string? symbol = null)
