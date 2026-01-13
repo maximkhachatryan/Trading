@@ -1,3 +1,4 @@
+using Trading.ApplicationContracts;
 using Trading.ApplicationContracts.Dtos.Position;
 using Trading.ApplicationContracts.Services;
 using Trading.Domain.Aggregates.Position;
@@ -5,7 +6,10 @@ using Trading.Domain.Contracts;
 
 namespace Trading.ApplicationServices.Services;
 
-public class ActivePositionService(IActivePositionRepository activePositionRepository) : IActivePositionService
+public class ActivePositionService(
+    IActivePositionRepository activePositionRepository,
+    IExchange exchange)
+    : IActivePositionService
 {
     public async Task<bool> OpenPosition(string assetSymbol, string sourceSymbol)
     {
@@ -17,16 +21,13 @@ public class ActivePositionService(IActivePositionRepository activePositionRepos
         return await activePositionRepository.TryAdd(position);
     }
 
-    public async Task<bool> ExitPosition(string symbol)//symbol = "ETHUSDT"
+    public async Task<bool> ClosePosition(string symbol) //symbol = "ETHUSDT"
     {
-        //TODO: Remove all conditional orders
-        //TODO: Sell assets of the given symbol by market price
-        //TODO: Wait for 10 seconds for the last trade to be sent via socket
-        //TODO: Gracefully unsubscribe from the socket
+        await exchange.CancelAllUntriggeredConditionalSpotOrder(symbol);
         return await activePositionRepository.TryRemove(symbol);
     }
 
-    public async Task<PositionDetailsDto?> GetOpenPosition(string symbol)//symbol = "ETHUSDT"
+    public async Task<PositionDetailsDto?> GetOpenPosition(string symbol) //symbol = "ETHUSDT"
     {
         var activePosition = await activePositionRepository.GetActivePosition(symbol);
 

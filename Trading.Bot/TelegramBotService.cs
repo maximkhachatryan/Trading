@@ -80,11 +80,11 @@ public class TelegramBotService(
                     }
                     break;
 
-                case "/exit_position":
+                case "/close_position":
                     if (parts.Length < 2)
                         return;
                     assetSymbol = parts[1];
-                    var exited = await positionService.ExitPosition(assetSymbol);
+                    var exited = await positionService.ClosePosition(assetSymbol);
                     if (exited)
                     {
                         await bot.SendMessage(
