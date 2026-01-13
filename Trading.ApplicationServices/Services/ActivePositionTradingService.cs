@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using Trading.ApplicationContracts;
 using Trading.ApplicationContracts.Services;
+using Trading.ApplicationServices.Configurations;
 using Trading.Domain.Aggregates.Position;
 using Trading.Domain.Contracts;
 using Trading.Domain.Enums;
@@ -11,14 +13,11 @@ namespace Trading.ApplicationServices.Services;
 
 public class ActivePositionTradingService(
     IExchange exchange,
-    IActivePositionRepository activePositionRepository)
+    IActivePositionRepository activePositionRepository,
+    IOptions<ActivePositionTradingOptions> options)
     : IActivePositionTradingService
 {
-    private static readonly decimal TradeValue = 1m;
-    private static readonly decimal TakeProfitPercentage = 1m;
-    private static readonly decimal PriceDeviationPercentage = 1m;
-    private static readonly decimal BuyFeePercentage = 1m;
-    private static readonly decimal SellFeePercentage = 1m;
+    private readonly ActivePositionTradingOptions _options = options.Value;
 
     public async Task StartTrading()
     {
@@ -73,11 +72,11 @@ public class ActivePositionTradingService(
     {
         if (orderFilledEvent.Side == OrderSide.Buy)
         {
-            activePosition.Buy(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, BuyFeePercentage, orderFilledEvent.FilledAt);
+            activePosition.Buy(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, _options.BuyFeePercentage, orderFilledEvent.FilledAt);
         }
         else if (orderFilledEvent.Side == OrderSide.Sell)
         {
-            activePosition.Sell(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, SellFeePercentage, orderFilledEvent.FilledAt);
+            activePosition.Sell(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, _options.SellFeePercentage, orderFilledEvent.FilledAt);
         }
 
         await activePositionRepository.TryUpdate(activePosition);
@@ -85,11 +84,11 @@ public class ActivePositionTradingService(
         await exchange.CancelAllUntriggeredConditionalSpotOrder(activePosition.Symbol);
 
         var strategy = new MainTradingStrategy(
-            TradeValue,
-            TakeProfitPercentage,
-            PriceDeviationPercentage,
-            BuyFeePercentage,
-            SellFeePercentage
+            _options.TradeValue,
+            _options.TakeProfitPercentage,
+            _options.PriceDeviationPercentage,
+            _options.BuyFeePercentage,
+            _options.SellFeePercentage
         );
         
         strategy.OrderPlacing += async (s, e) => await OnPlacingOrder(s, e);//Problem: Exceptions crash process

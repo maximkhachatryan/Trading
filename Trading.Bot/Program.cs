@@ -1,9 +1,15 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Trading.Bot;
 using Trading.Bot.Extensions;
 
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .Build();
+
 var serviceProvider = new ServiceCollection()
-    .ConfigureServices()
+    .ConfigureServices(configuration)
     .BuildServiceProvider();
 
 // var botToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
