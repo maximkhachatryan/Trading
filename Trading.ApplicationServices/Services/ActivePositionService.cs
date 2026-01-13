@@ -60,13 +60,4 @@ public class ActivePositionService(IActivePositionRepository activePositionRepos
             Quantity = kv.Value.Metrics.Quantity
         })).ToDictionary();
     }
-
-    public async Task StartTrading()
-    {
-        //Cancel all spot conditional orders for all symbols.
-        //Get all active positions
-        //Get all trades from each position start date. Update position based on missed buy/sell trades. Don't forget to save position.
-        //Start listening to the active positions symbols.
-        //Place conditional orders
-    }
 }

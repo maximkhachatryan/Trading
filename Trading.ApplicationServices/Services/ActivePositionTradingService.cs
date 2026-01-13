@@ -36,6 +36,23 @@ public class ActivePositionTradingService(
             return;
         }
 
+        await ProcessUnhandledOrders();
+        
+        await exchange.SubscribeToOrderUpdates(async void (orderFilledEvent) =>
+        {
+            var activePosition = await activePositionRepository.GetActivePosition(orderFilledEvent.Symbol);
+            if (activePosition == null)
+            {
+                Console.WriteLine($"Warning: No active position found for order with Id {orderFilledEvent.OrderId}");
+                return;
+            }
+    
+            await HandleOrderFilled(orderFilledEvent, activePosition);
+        });
+    }
+
+    private async Task ProcessUnhandledOrders()
+    {
         var positions = await activePositionRepository.GetActivePositions();
         foreach (var position in positions.Values) 
         {
@@ -50,18 +67,6 @@ public class ActivePositionTradingService(
             }
             position.ClearWaitingOrders();
         }
-        
-        await exchange.SubscribeToOrderUpdates(async void (orderFilledEvent) =>
-        {
-            var activePosition = await activePositionRepository.GetActivePosition(orderFilledEvent.Symbol);
-            if (activePosition == null)
-            {
-                Console.WriteLine($"Warning: No active position found for order with Id {orderFilledEvent.OrderId}");
-                return;
-            }
-    
-            await HandleOrderFilled(orderFilledEvent, activePosition);
-        });
     }
 
     private async Task HandleOrderFilled(OrderFilledEvent orderFilledEvent, Position activePosition)

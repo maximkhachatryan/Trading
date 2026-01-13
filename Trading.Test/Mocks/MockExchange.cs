@@ -111,6 +111,11 @@ public class MockExchange : IExchange
         return Task.CompletedTask;
     }
 
+    public Task<OrderFilledEvent?> GetFilledOrderById(string orderId)
+    {
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Helper method for testing: simulates an order being filled
     /// </summary>
