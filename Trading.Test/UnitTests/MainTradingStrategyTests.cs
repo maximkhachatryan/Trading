@@ -45,7 +45,7 @@ public class MainTradingStrategyTests
     }
 
     [Test]
-    public void Buy_Metrics()
+    public void ShortSell()
     {
         var position = new Position
         {
