@@ -20,13 +20,19 @@ public class Position
     public void Buy(string orderId, decimal quantity, decimal grossPrice, decimal buyFeePercentage, DateTime timestamp)
     {
         var netPrice = PriceHelper.CalculateNetPriceForBuy(grossPrice, buyFeePercentage);
+        var netQuantity = quantity;
+        
+        //TODO: 
+        // var netPrice = grossPrice;
+        // var netQuantity = quantity * (1 - buyFeePercentage / 100);
+        
         Trades.Add(new Trade
         {
             OrderId = orderId,
             TimeStamp = timestamp,
             ActionType = TradeActionType.Buy,
             NetPrice = netPrice,
-            Quantity = quantity
+            Quantity = netQuantity
         });
         _waitingOrders.Remove(orderId);
     }

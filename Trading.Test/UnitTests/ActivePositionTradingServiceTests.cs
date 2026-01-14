@@ -27,10 +27,10 @@ public class ActivePositionTradingServiceTests
         var options = new ActivePositionTradingOptions
         {
             TradeValue = 100,
-            TakeProfitPercentage = 0.05m,
-            PriceDeviationPercentage = 0.02m,
-            BuyFeePercentage = 0.001m,
-            SellFeePercentage = 0.001m
+            TakeProfitPercentage = 10m,
+            PriceDeviationPercentage = 10m,
+            BuyFeePercentage = 0.1m,
+            SellFeePercentage = 0.1m
         };
         _options = Options.Create(options);
 
@@ -168,5 +168,27 @@ public class ActivePositionTradingServiceTests
         Assert.That(placedOrders, Has.Some.Matches<ConditionalOrder>(o => 
             o.TriggerDirection == TriggerDirection.Rise && 
             o.TriggerPrice > 1000m), "Expected Sell TakeProfit Order above 1000");
+    }
+    
+    [Test]
+    public async Task PlacingOrders_WithTargetPrices_Scenario1()
+    {
+        // Arrange
+        var position = new Position { AssetSymbol = "ETH", SourceSymbol = "USDT" };
+        _repository.AddPosition(position);
+        await _service.StartTrading();
+        
+        // Act: Buy at 1000
+        _exchange.SimulateOrderFilled("BUY-1000", OrderSide.Buy, 1000, position.Symbol, 1m);
+        
+        var placedOrders = await _exchange.GetPlacedConditionalOrders(position.Symbol);
+
+
+        var sellOrder = placedOrders.First(x => x.OrderId == "MOCK-1");
+        _exchange.SimulateOrderFilled(sellOrder.OrderId, OrderSide.Sell, sellOrder.TriggerPrice, position.Symbol, sellOrder.Quantity);
+
+
+        var positionAfterSell = await _repository.GetActivePosition("ETHUSDT");
+        
     }
 }
