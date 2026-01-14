@@ -16,7 +16,7 @@ public class MainTradingStrategy(
 )
 {
     public event EventHandler<OrderPlacingEventArgs>? OrderPlacing;
-    
+
     public event EventHandler<PositionFinishingEventArgs>? PositionFinishing;
     public event EventHandler<PositionFinishedEventArgs>? PositionFinished;
 
@@ -69,9 +69,9 @@ public class MainTradingStrategy(
     {
         var metrics = position.Metrics;
 
-        if (metrics.Cost <= 1)// 1$ if position.SourceSymbol == "USD"
-            return null; 
-        
+        if (metrics.Cost <= 1) // 1$ if position.SourceSymbol == "USD"
+            return null;
+
         var sellNetPrice = metrics.AverageNetPrice!.Value.IncreaseByPercentage(takeProfitPercentage);
         var sellGrossPrice = PriceHelper.CalculateGrossPriceForSell(sellNetPrice, sellFeePercentage);
         var finalSellOrder = new ConditionalOrderRequest
@@ -94,18 +94,24 @@ public class MainTradingStrategy(
             TriggerPrice = buyGrossPrice
         };
 
-        var shortSellNetPrice = (metrics.Cost * tradeValue * (1 + takeProfitPercentage / 100m)) /
-                                (metrics.Quantity * (tradeValue + metrics.Cost * takeProfitPercentage / 100m));
-
-        var shortSellGrossPrice = PriceHelper.CalculateGrossPriceForSell(shortSellNetPrice, sellFeePercentage);
-
-        var shortSellOrder = new ConditionalOrderRequest
+        ConditionalOrderRequest shortSellOrder = null;
+        var netShortSellAmount = tradeValue.IncreaseByPercentage(takeProfitPercentage);
+        if (metrics.Cost > netShortSellAmount)
         {
-            Symbol = position.Symbol,
-            TriggerDirection = TriggerDirection.Rise,
-            Quantity = tradeValue.IncreaseByPercentage(takeProfitPercentage) / shortSellGrossPrice,
-            TriggerPrice = buyGrossPrice
-        };
+            var shortSellNetPrice = netShortSellAmount / (metrics.Quantity *
+                                                          (1m - ((metrics.Cost - netShortSellAmount) *
+                                                                 (100m - priceDeviationPercentage)) /
+                                                              (100m * metrics.Cost)));
+            var shortSellGrossPrice = PriceHelper.CalculateGrossPriceForSell(shortSellNetPrice, sellFeePercentage);
+
+            shortSellOrder = new ConditionalOrderRequest
+            {
+                Symbol = position.Symbol,
+                TriggerDirection = TriggerDirection.Rise,
+                Quantity = netShortSellAmount / shortSellNetPrice,
+                TriggerPrice = shortSellGrossPrice
+            };
+        }
 
         return new ConditionalOrderRequestInfo
         {
@@ -113,7 +119,6 @@ public class MainTradingStrategy(
             DipBuyOrder = buyOrder,
             ShortSellOrder = shortSellOrder
         };
-
     }
 
 

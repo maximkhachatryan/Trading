@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Trading.Bot;
 using Trading.Bot.Extensions;
 
+
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.ComponentModel.DataAnnotations;
 using Trading.Domain.Enums;
+using Trading.Domain.Extensions;
 using Trading.Domain.Helpers;
 using Trading.Domain.ValueObjects;
 
@@ -20,11 +21,7 @@ public class Position
     public void Buy(string orderId, decimal quantity, decimal grossPrice, decimal buyFeePercentage, DateTime timestamp)
     {
         var netPrice = PriceHelper.CalculateNetPriceForBuy(grossPrice, buyFeePercentage);
-        var netQuantity = quantity;
-        
-        //TODO: 
-        // var netPrice = grossPrice;
-        // var netQuantity = quantity * (1 - buyFeePercentage / 100);
+        var netQuantity = quantity.DecreaseByPercentage(buyFeePercentage);
         
         Trades.Add(new Trade
         {
@@ -57,7 +54,7 @@ public class Position
     public void ClearWaitingOrders() => _waitingOrders.Clear();
 
 
-    public List<Trade> Trades { get; set; } = [];
+    public List<Trade> Trades { get; private set; } = [];
 
     public (decimal Quantity, decimal Cost, decimal? AverageNetPrice) Metrics
     {
