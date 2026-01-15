@@ -69,6 +69,7 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=72f804f1_002Dae06_002D4025_002D8ac8_002D9f8e9cc55d77/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="ShortSell_2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;NUnit3x::7C1D3C9A-9E71-487D-8A65-C5475C468D16::net9.0::Trading.Test.UnitTests.MainTradingStrategyTests.ShortSell_2&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::7C1D3C9A-9E71-487D-8A65-C5475C468D16::net9.0::Trading.Test.UnitTests.MainTradingStrategyTests.ShortSell&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ad5081a0_002D8fce_002D47ee_002D8b42_002D63aa224afa3d/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Buy_Metrics #5" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
