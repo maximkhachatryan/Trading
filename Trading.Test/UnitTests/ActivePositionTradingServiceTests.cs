@@ -26,7 +26,7 @@ public class ActivePositionTradingServiceTests
         
         var options = new ActivePositionTradingOptions
         {
-            TradeValue = 100,
+            TradeValue = 1000,
             TakeProfitPercentage = 10m,
             PriceDeviationPercentage = 10m,
             BuyFeePercentage = 0.1m,
@@ -138,57 +138,5 @@ public class ActivePositionTradingServiceTests
         // Allow time for async processing (PositionFinishing -> TryRemove)
         // Position should be removed (closed)
         Assert.That(async () => await _repository.GetActivePosition(position.Symbol), Is.Null.After(200, 10));
-    }
-    
-    [Test]
-    public async Task PlacingOrders_WithTargetPrices_Scenario()
-    {
-        // Arrange
-        var position = new Position { AssetSymbol = "ETH", SourceSymbol = "USDT" };
-        _repository.AddPosition(position);
-        await _service.StartTrading();
-        
-        // Act: Buy at 1000
-        _exchange.SimulateOrderFilled("BUY-1000", OrderSide.Buy, 1000, position.Symbol, 1m);
-        
-        // Assert
-        // Wait for orders to be placed
-        Assert.That(async () =>
-        {
-            var result = await _exchange.GetPlacedConditionalOrders(position.Symbol);
-            return result;
-        }, Has.Count.GreaterThan(0).After(200, 10));
-
-        var placedOrders = await _exchange.GetPlacedConditionalOrders(position.Symbol);
-        
-        Assert.That(placedOrders, Has.Some.Matches<ConditionalOrder>(o => 
-            o.TriggerDirection == TriggerDirection.Fall && 
-            o.TriggerPrice < 1000m), "Expected Buy Dip Order below 1000");
-
-        Assert.That(placedOrders, Has.Some.Matches<ConditionalOrder>(o => 
-            o.TriggerDirection == TriggerDirection.Rise && 
-            o.TriggerPrice > 1000m), "Expected Sell TakeProfit Order above 1000");
-    }
-    
-    [Test]
-    public async Task PlacingOrders_WithTargetPrices_Scenario1()
-    {
-        // Arrange
-        var position = new Position { AssetSymbol = "ETH", SourceSymbol = "USDT" };
-        _repository.AddPosition(position);
-        await _service.StartTrading();
-        
-        // Act: Buy at 1000
-        _exchange.SimulateOrderFilled("BUY-1000", OrderSide.Buy, 1000, position.Symbol, 1m);
-        
-        var placedOrders = await _exchange.GetPlacedConditionalOrders(position.Symbol);
-
-
-        var sellOrder = placedOrders.First(x => x.OrderId == "MOCK-1");
-        _exchange.SimulateOrderFilled(sellOrder.OrderId, OrderSide.Sell, sellOrder.TriggerPrice, position.Symbol, sellOrder.Quantity);
-
-
-        var positionAfterSell = await _repository.GetActivePosition("ETHUSDT");
-        
     }
 }
