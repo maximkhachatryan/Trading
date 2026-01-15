@@ -31,13 +31,21 @@ public class MainTradingStrategy(
             return;
         }
 
+        var buyOrder = conditionalOrders.DipBuyOrder;
+        var sellOrder = new[]
+            {
+                conditionalOrders.FinalSellOrder,
+                conditionalOrders.ShortSellOrder
+            }
+            .Where(o => o is not null)
+            .MinBy(o => o!.TriggerPrice);
+
         var result = new List<ConditionalOrderRequest>();
-        if (conditionalOrders.FinalSellOrder != null)
-            result.Add(conditionalOrders.FinalSellOrder);
-        if (conditionalOrders.DipBuyOrder != null)
-            result.Add(conditionalOrders.DipBuyOrder);
-        if (conditionalOrders.ShortSellOrder != null)
-            result.Add(conditionalOrders.ShortSellOrder);
+
+        if (buyOrder != null)
+            result.Add(buyOrder);
+        if (sellOrder != null)
+            result.Add(sellOrder);
 
         if (result.Count == 0)
         {
@@ -94,9 +102,23 @@ public class MainTradingStrategy(
             TriggerPrice = buyGrossPrice
         };
 
+
+        var shortSellOrder = CalculateShortSellOrderReducingAveragePrice(position);
+
+        return new ConditionalOrderRequestInfo
+        {
+            FinalSellOrder = finalSellOrder,
+            DipBuyOrder = buyOrder,
+            ShortSellOrder = shortSellOrder
+        };
+    }
+
+    private ConditionalOrderRequest? CalculateShortSellOrderReducingCost(Position position)
+    {
+        var metrics = position.Metrics;
         ConditionalOrderRequest shortSellOrder = null;
-        var netShortSellAmount = tradeValue.IncreaseByPercentage(takeProfitPercentage);
-        if (metrics.Cost > netShortSellAmount)
+        var netShortSellAmount = tradeValue.IncreaseByPercentage(priceDeviationPercentage);
+        if (metrics.Cost >= 2 * netShortSellAmount)
         {
             var shortSellNetPrice = netShortSellAmount / (metrics.Quantity *
                                                           (1m - ((metrics.Cost - netShortSellAmount) *
@@ -113,12 +135,32 @@ public class MainTradingStrategy(
             };
         }
 
-        return new ConditionalOrderRequestInfo
+        return shortSellOrder;
+    }
+
+    private ConditionalOrderRequest? CalculateShortSellOrderReducingAveragePrice(Position position)
+    {
+        var metrics = position.Metrics;
+        ConditionalOrderRequest shortSellOrder = null;
+        if (metrics.Cost >= 2 * tradeValue)
         {
-            FinalSellOrder = finalSellOrder,
-            DipBuyOrder = buyOrder,
-            ShortSellOrder = shortSellOrder
-        };
+            var shortSellNetPrice = tradeValue /
+                                    (metrics.Quantity *
+                                     (1m - ((metrics.Cost - tradeValue) *
+                                            (100m - priceDeviationPercentage)) /
+                                         (metrics.Cost * (100m - priceDeviationPercentage / 2))));
+            var shortSellGrossPrice = PriceHelper.CalculateGrossPriceForSell(shortSellNetPrice, sellFeePercentage);
+
+            shortSellOrder = new ConditionalOrderRequest
+            {
+                Symbol = position.Symbol,
+                TriggerDirection = TriggerDirection.Rise,
+                Quantity = tradeValue / shortSellNetPrice,
+                TriggerPrice = shortSellGrossPrice
+            };
+        }
+
+        return shortSellOrder;
     }
 
 
