@@ -1,11 +1,12 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using NUnit.Framework;
+using Moq;
+using Trading.ApplicationContracts.Services;
 using Trading.ApplicationServices.Configurations;
 using Trading.ApplicationServices.Services;
 using Trading.Domain.Aggregates.Position;
+using Trading.Domain.Contracts;
 using Trading.Domain.Enums;
-using Trading.Domain.Events;
-using Trading.Domain.ValueObjects;
 using Trading.Test.Mocks;
 
 namespace Trading.Test.UnitTests;
@@ -15,6 +16,8 @@ public class ActivePositionTradingServiceTests
 {
     private MockExchange _exchange;
     private MockActivePositionRepository _repository;
+    private Mock<IServiceScopeFactory> _scopeFactory;
+    private Mock<INotifier> _notifier;
     private IOptions<ActivePositionTradingOptions> _options;
     private ActivePositionTradingService _service;
 
@@ -34,25 +37,30 @@ public class ActivePositionTradingServiceTests
         };
         _options = Options.Create(options);
 
-        _service = new ActivePositionTradingService(_exchange, _repository, _options);
+        var scope = new Mock<IServiceScope>();
+        var serviceProvider = new Mock<IServiceProvider>();
+
+        _scopeFactory = new Mock<IServiceScopeFactory>();
+        _scopeFactory.Setup(x => x.CreateScope()).Returns(scope.Object);
+        scope.Setup(x => x.ServiceProvider).Returns(serviceProvider.Object);
+        serviceProvider.Setup(x => x.GetService(typeof(IActivePositionRepository))).Returns(_repository);
+
+        _notifier = new Mock<INotifier>();
+
+        _service = new ActivePositionTradingService(_exchange, _scopeFactory.Object, _notifier.Object, _options);
     }
 
     [Test]
     public async Task StartTrading_ShouldCancelUntriggeredOrders_And_SubscribeToUpdates()
     {
+        // Arrange
+        // MockExchange default state is empty, so let's pre-fill it to verify cancellation
+        await _exchange.PlaceConditionalOrder("BTCUSDT", OrderSide.Buy, 1, 50000, TriggerDirection.Fall);
+
         // Act
         await _service.StartTrading();
 
         // Assert
-        // We know CancelAllUntriggeredConditionalSpotOrder should be called.
-        // MockExchange logic clears conditional orders when called, so we can verify the state.
-        
-        // Actually, MockExchange default state is empty, so let's pre-fill it to verify cancellation
-        await _exchange.PlaceConditionalOrder("BTCUSDT", OrderSide.Buy, 1, 50000, TriggerDirection.Fall);
-        
-        // Re-run service to trigger cancel
-        await _service.StartTrading(); 
-        
         var remainingOrders = await _exchange.GetUntriggeredConditionalSpotOrderIds();
         Assert.That(remainingOrders, Is.Empty);
     }
@@ -106,6 +114,7 @@ public class ActivePositionTradingServiceTests
 
         // Assert
         var updatedPosition = await _repository.GetActivePosition(position.Symbol);
+        Assert.That(updatedPosition, Is.Not.Null);
         Assert.That(updatedPosition.Trades, Has.Count.EqualTo(1));
         Assert.That(updatedPosition.Trades.First().ActionType, Is.EqualTo(TradeActionType.Buy));
         

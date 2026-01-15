@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Trading.ApplicationContracts;
 using Trading.ApplicationContracts.Services;
@@ -13,11 +14,14 @@ namespace Trading.ApplicationServices.Services;
 
 public class ActivePositionTradingService(
     IExchange exchange,
-    IActivePositionRepository activePositionRepository,
+    IServiceScopeFactory scopeFactory,
+    INotifier notifier,
     IOptions<ActivePositionTradingOptions> options)
     : IActivePositionTradingService
 {
     private readonly ActivePositionTradingOptions _options = options.Value;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+    private bool _isTrading;
 
     public async Task StartTrading()
     {
@@ -27,30 +31,52 @@ public class ActivePositionTradingService(
         //Start listening to the active positions symbols.
         //Place conditional orders
         
+        if (_isTrading) return;
+        _isTrading = true;
+
         var cancelSucceeded = await exchange.CancelAllUntriggeredConditionalSpotOrder();
     
         if (!cancelSucceeded)
         {
             Console.WriteLine("Trading couldn't be started (couldn't cancel UntriggeredConditionalSpotOrders)");
+            _isTrading = false;
             return;
         }
 
-        await ProcessUnhandledOrders();
-        
-        await exchange.SubscribeToOrderUpdates(async void (orderFilledEvent) =>
+        using (var scope = scopeFactory.CreateScope())
         {
-            var activePosition = await activePositionRepository.GetActivePosition(orderFilledEvent.Symbol);
-            if (activePosition == null)
+            var activePositionRepository = scope.ServiceProvider.GetRequiredService<IActivePositionRepository>();
+            await ProcessUnhandledOrders(activePositionRepository);
+        }
+        
+        await notifier.Notify("🤖 Trading system ONLINE and monitoring active positions.");
+        
+        await exchange.SubscribeToOrderUpdates(async (orderFilledEvent) =>
+        {
+            try 
             {
-                Console.WriteLine($"Warning: No active position found for order with Id {orderFilledEvent.OrderId}");
-                return;
+                using var scope = scopeFactory.CreateScope();
+                var activePositionRepository = scope.ServiceProvider.GetRequiredService<IActivePositionRepository>();
+                
+                var activePosition = await activePositionRepository.GetActivePosition(orderFilledEvent.Symbol);
+                if (activePosition == null)
+                {
+                    Console.WriteLine($"Warning: No active position found for order with Id {orderFilledEvent.OrderId}");
+                    return;
+                }
+        
+                await HandleOrderFilled(orderFilledEvent, activePosition, activePositionRepository);
             }
-    
-            await HandleOrderFilled(orderFilledEvent, activePosition);
+            catch (Exception ex)
+            {
+                var errorMsg = $"Error in OrderUpdate callback: {ex.Message}";
+                Console.WriteLine(errorMsg);
+                await notifier.Notify($"❌ {errorMsg}");
+            }
         });
     }
 
-    private async Task ProcessUnhandledOrders()
+    private async Task ProcessUnhandledOrders(IActivePositionRepository activePositionRepository)
     {
         var positions = await activePositionRepository.GetActivePositions();
         foreach (var position in positions.Values) 
@@ -61,46 +87,91 @@ public class ActivePositionTradingService(
 
                 if (filledOrder != null)
                 {
-                    await HandleOrderFilled(filledOrder, position);
+                    await HandleOrderFilled(filledOrder, position, activePositionRepository);
                 }
             }
             position.ClearWaitingOrders();
         }
     }
 
-    private async Task HandleOrderFilled(OrderFilledEvent orderFilledEvent, Position activePosition)
+    private async Task HandleOrderFilled(OrderFilledEvent orderFilledEvent, Position activePosition, IActivePositionRepository activePositionRepository)
     {
-        if (orderFilledEvent.Side == OrderSide.Buy)
+        await _lock.WaitAsync();
+        try
         {
-            activePosition.Buy(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, _options.BuyFeePercentage, orderFilledEvent.FilledAt);
+            if (orderFilledEvent.Side == OrderSide.Buy)
+            {
+                activePosition.Buy(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, _options.BuyFeePercentage, orderFilledEvent.FilledAt);
+                await notifier.Notify($"🟢 BUY FILLED: {activePosition.Symbol}\nQty: {orderFilledEvent.Quantity}\nPrice: {orderFilledEvent.ExecutionPrice}");
+            }
+            else if (orderFilledEvent.Side == OrderSide.Sell)
+            {
+                activePosition.Sell(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, _options.SellFeePercentage, orderFilledEvent.FilledAt);
+                await notifier.Notify($"🔴 SELL FILLED: {activePosition.Symbol}\nQty: {orderFilledEvent.Quantity}\nPrice: {orderFilledEvent.ExecutionPrice}");
+            }
+    
+            await activePositionRepository.TryUpdate(activePosition);
+    
+            await exchange.CancelAllUntriggeredConditionalSpotOrder(activePosition.Symbol);
+    
+            var strategy = new MainTradingStrategy(
+                _options.TradeValue,
+                _options.TakeProfitPercentage,
+                _options.PriceDeviationPercentage,
+                _options.BuyFeePercentage,
+                _options.SellFeePercentage
+            );
+            
+            strategy.OrderPlacing += async (s, e) => 
+            {
+                try 
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var repo = scope.ServiceProvider.GetRequiredService<IActivePositionRepository>();
+                    await OnPlacingOrder(s, e, repo);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error in OrderPlacing: {ex}");
+                }
+            };
+            strategy.PositionFinishing += async (s, e) => 
+            {
+                try 
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var repo = scope.ServiceProvider.GetRequiredService<IActivePositionRepository>();
+                    await OnPositionFinishing(s, e, repo);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error in PositionFinishing: {ex}");
+                }
+            };
+            strategy.PositionFinished += async (s, e) => 
+            {
+                try 
+                {
+                    await OnPositionFinished(s, e);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error in PositionFinished: {ex}");
+                }
+            };
+            
+            strategy.PlaceOrders(activePosition);
         }
-        else if (orderFilledEvent.Side == OrderSide.Sell)
+        finally
         {
-            activePosition.Sell(orderFilledEvent.OrderId, orderFilledEvent.Quantity, orderFilledEvent.ExecutionPrice, _options.SellFeePercentage, orderFilledEvent.FilledAt);
+            _lock.Release();
         }
-
-        await activePositionRepository.TryUpdate(activePosition);
-
-        await exchange.CancelAllUntriggeredConditionalSpotOrder(activePosition.Symbol);
-
-        var strategy = new MainTradingStrategy(
-            _options.TradeValue,
-            _options.TakeProfitPercentage,
-            _options.PriceDeviationPercentage,
-            _options.BuyFeePercentage,
-            _options.SellFeePercentage
-        );
-        
-        strategy.OrderPlacing += async (s, e) => await OnPlacingOrder(s, e);//Problem: Exceptions crash process
-        strategy.PositionFinishing += async (s, e) => await OnPositionFinishing(s, e);//Problem: Exceptions crash process
-        strategy.PositionFinished += async (s, e) => await OnPositionFinished(s, e);//Problem: Exceptions crash process
-        
-        strategy.PlaceOrders(activePosition);
     }
 
-    private async Task OnPositionFinishing(object? sender, PositionFinishingEventArgs eventArgs)
+    private async Task OnPositionFinishing(object? sender, PositionFinishingEventArgs eventArgs, IActivePositionRepository activePositionRepository)
     {
         await activePositionRepository.TryRemove(eventArgs.Position.Symbol);
+        await notifier.Notify($"🏁 Position FINISHED: {eventArgs.Position.Symbol}");
     }
     
     private async Task OnPositionFinished(object? sender, PositionFinishedEventArgs eventArgs)
@@ -108,7 +179,7 @@ public class ActivePositionTradingService(
         //TODO: Save position into history
     }
     
-    private async Task OnPlacingOrder(object? sender, OrderPlacingEventArgs eventArgs)
+    private async Task OnPlacingOrder(object? sender, OrderPlacingEventArgs eventArgs, IActivePositionRepository activePositionRepository)
     {
         try
         {
@@ -123,6 +194,9 @@ public class ActivePositionTradingService(
         }
         catch (Exception e)
         {
+            var errorMsg = $"Error in OnPlacingOrder for {eventArgs.Position.Symbol}: {e.Message}";
+            Console.WriteLine(errorMsg);
+            await notifier.Notify($"❌ {errorMsg}");
             await exchange.CancelAllUntriggeredConditionalSpotOrder(eventArgs.Position.Symbol);
             eventArgs.Position.ClearWaitingOrders();
         }

@@ -9,7 +9,8 @@ namespace Trading.Bot;
 
 public class TelegramBotService(
     string botToken,
-    IServiceProvider serviceProvider)
+    IServiceProvider serviceProvider,
+    TelegramNotifier notifier)
 {
     private readonly ITelegramBotClient _bot = new TelegramBotClient(botToken);
 
@@ -36,6 +37,8 @@ public class TelegramBotService(
         var message = update.Message;
         if (message?.Text == null)
             return;
+
+        notifier.ChatId = message.Chat.Id;
 
         var parts = message.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var command = parts[0].ToLowerInvariant();
@@ -99,6 +102,15 @@ public class TelegramBotService(
                             $"⚠️ No active position found for {assetSymbol}",
                             cancellationToken: ct);
                     }
+                    break;
+
+                case "/start_trading":
+                    var tradingService = scope.ServiceProvider.GetRequiredService<IActivePositionTradingService>();
+                    await tradingService.StartTrading();
+                    await bot.SendMessage(
+                        message.Chat.Id,
+                        "🚀 Trading started!",
+                        cancellationToken: ct);
                     break;
             }
         }

@@ -13,11 +13,7 @@ var serviceProvider = new ServiceCollection()
     .ConfigureServices(configuration)
     .BuildServiceProvider();
 
-// var botToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
-//                ?? throw new Exception("Missing TELEGRAM_BOT_TOKEN");
-var botToken = "8246739182:AAG49Dna-5Xfm6gCZCs8IXAranAKBW8R6Pk";
-
-var botService = new TelegramBotService(botToken, serviceProvider);
+var botService = serviceProvider.GetRequiredService<TelegramBotService>();
 botService.Start();
 
 Console.WriteLine("Press Ctrl+C to exit");

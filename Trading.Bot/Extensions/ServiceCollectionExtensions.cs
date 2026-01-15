@@ -23,7 +23,16 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(ActivePositionTradingOptions.SectionName));
             
         services.AddScoped<IActivePositionService, ActivePositionService>();
-        services.AddScoped<IActivePositionTradingService, ActivePositionTradingService>(); // Assuming this is needed as per request
+        services.AddSingleton<IActivePositionTradingService, ActivePositionTradingService>();
+        
+        // Register TelegramNotifier
+        var botToken = "8246739182:AAG49Dna-5Xfm6gCZCs8IXAranAKBW8R6Pk"; // Consistent with Program.cs
+        var notifier = new TelegramNotifier(botToken);
+        services.AddSingleton<INotifier>(notifier);
+        services.AddSingleton(notifier); // Register as itself to allow Setting ChatId
+        
+        services.AddSingleton(sp => new TelegramBotService(botToken, sp, notifier));
+        
         return services;
     }
     
