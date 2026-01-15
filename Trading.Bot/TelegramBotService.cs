@@ -106,11 +106,21 @@ public class TelegramBotService(
 
                 case "/start_trading":
                     var tradingService = scope.ServiceProvider.GetRequiredService<IActivePositionTradingService>();
-                    await tradingService.StartTrading();
-                    await bot.SendMessage(
-                        message.Chat.Id,
-                        "🚀 Trading started!",
-                        cancellationToken: ct);
+                    var started = await tradingService.StartTrading();
+                    if (started)
+                    {
+                        await bot.SendMessage(
+                            message.Chat.Id,
+                            "🚀 Trading started!",
+                            cancellationToken: ct);
+                    }
+                    else
+                    {
+                        await bot.SendMessage(
+                            message.Chat.Id,
+                            "❌ Failed to start trading. Check logs for details.",
+                            cancellationToken: ct);
+                    }
                     break;
             }
         }

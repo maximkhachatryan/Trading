@@ -23,7 +23,7 @@ public class ActivePositionTradingService(
     private readonly SemaphoreSlim _lock = new(1, 1);
     private bool _isTrading;
 
-    public async Task StartTrading()
+    public async Task<bool> StartTrading()
     {
         //Cancel all spot conditional orders for all symbols.
         //Get all active positions
@@ -31,7 +31,7 @@ public class ActivePositionTradingService(
         //Start listening to the active positions symbols.
         //Place conditional orders
         
-        if (_isTrading) return;
+        if (_isTrading) return true;
         _isTrading = true;
 
         var cancelSucceeded = await exchange.CancelAllUntriggeredConditionalSpotOrder();
@@ -40,7 +40,7 @@ public class ActivePositionTradingService(
         {
             Console.WriteLine("Trading couldn't be started (couldn't cancel UntriggeredConditionalSpotOrders)");
             _isTrading = false;
-            return;
+            return false;
         }
 
         using (var scope = scopeFactory.CreateScope())
@@ -74,6 +74,8 @@ public class ActivePositionTradingService(
                 await notifier.Notify($"❌ {errorMsg}");
             }
         });
+        
+        return true;
     }
 
     private async Task ProcessUnhandledOrders(IActivePositionRepository activePositionRepository)

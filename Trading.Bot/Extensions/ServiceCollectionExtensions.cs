@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Trading.ApplicationContracts;
 using Trading.ApplicationContracts.Services;
+using Trading.ApplicationServices;
 using Trading.ApplicationServices.Configurations;
 using Trading.ApplicationServices.Services;
 using Trading.Domain.Contracts;
@@ -24,6 +26,7 @@ public static class ServiceCollectionExtensions
             
         services.AddScoped<IActivePositionService, ActivePositionService>();
         services.AddSingleton<IActivePositionTradingService, ActivePositionTradingService>();
+        services.AddSingleton<IExchange, BybitExchange>();
         
         // Register TelegramNotifier
         var botToken = "8246739182:AAG49Dna-5Xfm6gCZCs8IXAranAKBW8R6Pk"; // Consistent with Program.cs
