@@ -1,4 +1,5 @@
 using Bybit.Net;
+using System.Collections.Concurrent;
 using Bybit.Net.Clients;
 using Bybit.Net.Enums;
 using CryptoExchange.Net.Authentication;
@@ -17,6 +18,7 @@ public class BybitExchange : IExchange
     private readonly BybitRestClient _client;
     private readonly BybitSocketClient _socketClient;
     private Action<OrderFilledEvent>? _orderFilledCallback;
+    private readonly ConcurrentDictionary<string, (decimal QuantityStep, decimal PriceStep)> _instrumentInfoCache = new();
 
     public BybitExchange(IOptions<BybitOptions> options)
     {
@@ -111,6 +113,10 @@ public class BybitExchange : IExchange
             Domain.Enums.TriggerDirection.Fall => Bybit.Net.Enums.TriggerDirection.Fall,
             _ => throw new ArgumentException($"Invalid trigger direction: {triggerDirection}")
         };
+        
+        var (quantityStep, priceStep) = await GetInstrumentInfoAsync(symbol);
+        quantity = AdjustValue(quantity, quantityStep);
+        triggerPrice = AdjustValue(triggerPrice, priceStep);
 
         // Place conditional order
         var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
@@ -118,6 +124,7 @@ public class BybitExchange : IExchange
             symbol: symbol,
             side: bybitSide,
             type: NewOrderType.Market,
+            marketUnit: MarketUnit.BaseAsset,
             quantity: quantity,
             triggerPrice: triggerPrice,
             triggerDirection: bybitTriggerDirection,
@@ -278,6 +285,34 @@ public class BybitExchange : IExchange
 
         // Return candles in chronological order
         return allKlines.OrderBy(k => k.StartTime).ToArray();
+    }
+
+    private async Task<(decimal QuantityStep, decimal PriceStep)> GetInstrumentInfoAsync(string symbol)
+    {
+        if (_instrumentInfoCache.TryGetValue(symbol, out var info))
+        {
+            return info;
+        }
+
+        var result = await _client.V5Api.ExchangeData.GetSpotSymbolsAsync(symbol: symbol);
+        if (!result.Success || !result.Data.List.Any())
+        {
+            throw new Exception($"Failed to fetch instrument info for {symbol}: {result.Error}");
+        }
+
+        var instrument = result.Data.List.First();
+        var quantityStep = instrument.LotSizeFilter?.BasePrecision ?? 0;
+        var priceStep = instrument.PriceFilter?.TickSize ?? 0;
+
+        var newInfo = (quantityStep, priceStep);
+        _instrumentInfoCache[symbol] = newInfo;
+        return newInfo;
+    }
+
+    private decimal AdjustValue(decimal value, decimal step)
+    {
+        if (step == 0) return value;
+        return Math.Floor(value / step) * step;
     }
 
     private KlineInterval GetInterval(Interval interval)

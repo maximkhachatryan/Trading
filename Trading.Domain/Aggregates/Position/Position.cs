@@ -17,6 +17,23 @@ public class Position
 
     public string Symbol => $"{AssetSymbol}{SourceSymbol}";
 
+    public static Position Reconstruct(string sourceSymbol, string assetSymbol, List<Trade> trades, IEnumerable<ConditionalOrder> waitingOrders)
+    {
+        var position = new Position
+        {
+            SourceSymbol = sourceSymbol,
+            AssetSymbol = assetSymbol,
+            Trades = trades
+        };
+        
+        foreach (var order in waitingOrders)
+        {
+            position.AddWaitingOrder(order);
+        }
+        
+        return position;
+    }
+
 
     public void Buy(string orderId, decimal quantity, decimal grossPrice, decimal buyFeePercentage, DateTime timestamp)
     {
