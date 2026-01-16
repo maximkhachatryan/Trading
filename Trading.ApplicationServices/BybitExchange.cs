@@ -17,18 +17,20 @@ public class BybitExchange : IExchange
 
     public BybitExchange()
     {
+        //Permissions: Contracts - Orders Positions  , USDC Contracts - Trade  , Unified Trading - Trade  , SPOT - Trade  , Earn - Flexible Savings and On-Chain Earn 
+        var apiCredentials = new ApiCredentials(
+            "WJdIxvOSmRx35kwbRs",
+            "B72zAcsP4D7BK7nA80nGbPwHQa1jvD2dmbuI"); // <- Provide you API key/secret in these fields to retrieve data related to your account
+
+        
         BybitRestClient.SetDefaultOptions(options =>
         {
-            options.ApiCredentials =
-                new ApiCredentials("APIKEY",
-                    "APISECRET"); // <- Provide you API key/secret in these fields to retrieve data related to your account
+            options.ApiCredentials = apiCredentials;
         });
         
         BybitSocketClient.SetDefaultOptions(options =>
         {
-            options.ApiCredentials =
-                new ApiCredentials("APIKEY",
-                    "APISECRET");
+            options.ApiCredentials = apiCredentials;
         });
         
         _client = new BybitRestClient();
