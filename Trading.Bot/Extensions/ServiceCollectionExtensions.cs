@@ -23,6 +23,9 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<ActivePositionTradingOptions>(
             configuration.GetSection(ActivePositionTradingOptions.SectionName));
+        
+        services.Configure<BybitOptions>(
+            configuration.GetSection(BybitOptions.SectionName));
             
         services.AddScoped<IActivePositionService, ActivePositionService>();
         services.AddSingleton<IActivePositionTradingService, ActivePositionTradingService>();

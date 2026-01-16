@@ -1,3 +1,4 @@
+using Bybit.Net;
 using Bybit.Net.Clients;
 using Bybit.Net.Enums;
 using CryptoExchange.Net.Authentication;
@@ -5,6 +6,8 @@ using Trading.ApplicationContracts;
 using Trading.Domain.Constants;
 using Trading.Domain.Events;
 using Trading.Domain.ValueObjects;
+using Microsoft.Extensions.Options;
+using Trading.ApplicationServices.Configurations;
 using OrderSide = Trading.Domain.Enums.OrderSide;
 
 namespace Trading.ApplicationServices;
@@ -15,26 +18,29 @@ public class BybitExchange : IExchange
     private readonly BybitSocketClient _socketClient;
     private Action<OrderFilledEvent>? _orderFilledCallback;
 
-    public BybitExchange()
+    public BybitExchange(IOptions<BybitOptions> options)
     {
-        //Permissions: Contracts - Orders Positions  , USDC Contracts - Trade  , Unified Trading - Trade  , SPOT - Trade  , Earn - Flexible Savings and On-Chain Earn 
         var apiCredentials = new ApiCredentials(
-            "WJdIxvOSmRx35kwbRs",
-            "B72zAcsP4D7BK7nA80nGbPwHQa1jvD2dmbuI"); // <- Provide you API key/secret in these fields to retrieve data related to your account
+            options.Value.ApiKey,
+            options.Value.ApiSecret); 
 
-        
-        BybitRestClient.SetDefaultOptions(options =>
+        _client = new BybitRestClient(o =>
         {
-            options.ApiCredentials = apiCredentials;
+            o.ApiCredentials = apiCredentials;
+            if (options.Value.UseTestnet)
+            {
+                o.Environment = BybitEnvironment.Testnet;
+            }
         });
         
-        BybitSocketClient.SetDefaultOptions(options =>
+        _socketClient = new BybitSocketClient(o =>
         {
-            options.ApiCredentials = apiCredentials;
+            o.ApiCredentials = apiCredentials;
+            if (options.Value.UseTestnet)
+            {
+                o.Environment = BybitEnvironment.Testnet;
+            }
         });
-        
-        _client = new BybitRestClient();
-        _socketClient = new BybitSocketClient();
     }
 
     public async Task<OrderFilledEvent?> GetFilledOrderById(string orderId)
@@ -156,7 +162,7 @@ public class BybitExchange : IExchange
                             OrderId = order.OrderId,
                             Symbol = order.Symbol,
                             Side = side,
-                            Quantity = order.Quantity,
+                            Quantity = order.QuantityFilled!.Value,
                             ExecutionPrice = order.AveragePrice ?? 0,
                             FilledAt = order.UpdateTime
                         };

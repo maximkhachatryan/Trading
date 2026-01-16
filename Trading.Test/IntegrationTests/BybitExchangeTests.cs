@@ -17,7 +17,7 @@ public class BybitExchangeTests
     {
         // Credentials are expected to be hardcoded in BybitExchange constructor for now, 
         // or we might need to modify BybitExchange to accept them via valid configuration in the future.
-        _exchange = new BybitExchange();
+        //_exchange = new BybitExchange();
     }
 
     [Test]
