@@ -20,7 +20,7 @@ public class MainTradingStrategy(
     public event EventHandler<PositionFinishingEventArgs>? PositionFinishing;
     public event EventHandler<PositionFinishedEventArgs>? PositionFinished;
 
-    public void PlaceOrders(Position position)
+    public void Process(Position position)
     {
         var conditionalOrders = CalculateConditionalOrders(position);
         if (conditionalOrders == null)

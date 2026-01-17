@@ -91,35 +91,35 @@ public class MainTradingStrategyTests
 
         var averageNetPriceBefore = position.Metrics.AverageNetPrice!.Value;
 
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         FillOrder(BuyOrder, position);
 
-        _strategy.PlaceOrders(position);
+        _strategy.Process(position);
         while (SellOrder != null)
         {
             
             FillOrder(BuyOrder, position);
-            _strategy.PlaceOrders(position);
+            _strategy.Process(position);
             
             FillOrder(SellOrder, position);
-            _strategy.PlaceOrders(position);
+            _strategy.Process(position);
             
             FillOrder(SellOrder, position);
-            _strategy.PlaceOrders(position);
+            _strategy.Process(position);
         }
     }
 

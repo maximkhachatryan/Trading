@@ -162,7 +162,7 @@ public class ActivePositionTradingService(
                 }
             };
             
-            strategy.PlaceOrders(activePosition);
+            strategy.Process(activePosition);
         }
         finally
         {
