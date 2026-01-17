@@ -18,6 +18,7 @@ public class ActivePositionTradingServiceTests
     private MockActivePositionRepository _repository;
     private Mock<IServiceScopeFactory> _scopeFactory;
     private Mock<INotifier> _notifier;
+    private Mock<IFinishedPositionRepository> _finishedPositionRepository;
     private IOptions<ActivePositionTradingOptions> _options;
     private ActivePositionTradingService _service;
 
@@ -46,8 +47,9 @@ public class ActivePositionTradingServiceTests
         serviceProvider.Setup(x => x.GetService(typeof(IActivePositionRepository))).Returns(_repository);
 
         _notifier = new Mock<INotifier>();
+        _finishedPositionRepository = new Mock<IFinishedPositionRepository>();
 
-        _service = new ActivePositionTradingService(_exchange, _scopeFactory.Object, _notifier.Object, _options);
+        _service = new ActivePositionTradingService(_exchange, _scopeFactory.Object, _notifier.Object, _options, _finishedPositionRepository.Object);
     }
 
     [Test]

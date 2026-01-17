@@ -17,7 +17,8 @@ public class ActivePositionTradingService(
     IExchange exchange,
     IServiceScopeFactory scopeFactory,
     INotifier notifier,
-    IOptions<ActivePositionTradingOptions> options)
+    IOptions<ActivePositionTradingOptions> options,
+    IFinishedPositionRepository finishedPositionRepository)
     : IActivePositionTradingService
 {
     private readonly ActivePositionTradingOptions _options = options.Value;
@@ -200,7 +201,17 @@ public class ActivePositionTradingService(
     
     private async Task OnPositionFinished(object? sender, PositionFinishedEventArgs eventArgs)
     {
-        //TODO: Save position into history
+        try
+        {
+            await finishedPositionRepository.AddAsync(eventArgs.Position);
+            Console.WriteLine($"Position saved to history: {eventArgs.Position.Symbol}");
+        }
+        catch (Exception ex)
+        {
+            var errorMsg = $"Failed to save position to history for {eventArgs.Position.Symbol}: {ex.Message}";
+            Console.WriteLine(errorMsg);
+            await notifier.Notify($"⚠️ {errorMsg}");
+        }
     }
     
     private async Task OnPlacingOrder(object? sender, OrderPlacingEventArgs eventArgs, IActivePositionRepository activePositionRepository)

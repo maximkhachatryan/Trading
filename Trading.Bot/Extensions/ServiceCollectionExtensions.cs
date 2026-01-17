@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using Trading.ApplicationContracts;
 using Trading.ApplicationContracts.Services;
 using Trading.ApplicationServices;
@@ -7,6 +9,8 @@ using Trading.ApplicationServices.Configurations;
 using Trading.ApplicationServices.Services;
 using Trading.Domain.Contracts;
 using Trading.Infrastructure.Persistence.FileStorage.Repositories;
+using Trading.Infrastructure.Persistence.MongoDB.Configuration;
+using Trading.Infrastructure.Persistence.MongoDB.Repositories;
 
 namespace Trading.Bot.Extensions;
 
@@ -16,7 +20,8 @@ public static class ServiceCollectionExtensions
     {
         return services
             .RegisterServices(configuration)
-            .RegisterRepositories();
+            .RegisterRepositories()
+            .ConfigureMongoDb(configuration);
     }
 
     private static IServiceCollection RegisterServices(this IServiceCollection services, IConfiguration configuration)
@@ -45,6 +50,31 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection RegisterRepositories(this IServiceCollection services)
     {
         services.AddScoped<IActivePositionRepository, ActivePositionRepository>();
+        services.AddScoped<IFinishedPositionRepository, FinishedPositionRepository>();
+        return services;
+    }
+
+    private static IServiceCollection ConfigureMongoDb(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Bind MongoDB configuration
+        services.Configure<MongoDbSettings>(
+            configuration.GetSection("MongoDb"));
+
+        // Register MongoClient as singleton
+        services.AddSingleton<IMongoClient>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
+            return new MongoClient(settings.ConnectionString);
+        });
+
+        // Register database as scoped
+        services.AddScoped<IMongoDatabase>(sp =>
+        {
+            var client = sp.GetRequiredService<IMongoClient>();
+            var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
+            return client.GetDatabase(settings.DatabaseName);
+        });
+
         return services;
     }
 }
