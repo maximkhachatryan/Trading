@@ -49,7 +49,7 @@ public class BybitExchange : IExchange
     {
         var result = await _client.V5Api.Trading.GetOrdersAsync(category: Category.Spot, orderId: orderId);
 
-        if (result.Success)
+        if (!result.Success)
         {
             return null;
         }
@@ -97,23 +97,27 @@ public class BybitExchange : IExchange
 
     }
 
-    public async Task<ConditionalOrder> PlaceConditionalOrder(string symbol, Domain.Enums.OrderSide side, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
+    public async Task<decimal> GetCurrentPrice(string symbol)
+    {
+        var result = await _client.V5Api.ExchangeData.GetSpotTickersAsync(symbol);
+        if (!result.Success || !result.Data.List.Any())
+        {
+            throw new Exception($"Failed to fetch current price for {symbol}: {result.Error}");
+        }
+
+        return result.Data.List.First().LastPrice;
+    }
+
+    public async Task<ConditionalOrder> PlaceConditionalOrder(string symbol, OrderSide side, decimal quantity, decimal triggerPrice)
     {
         // Map domain enums to Bybit enums
         var bybitSide = side switch
         {
-            Domain.Enums.OrderSide.Buy => Bybit.Net.Enums.OrderSide.Buy,
-            Domain.Enums.OrderSide.Sell => Bybit.Net.Enums.OrderSide.Sell,
+            OrderSide.Buy => Bybit.Net.Enums.OrderSide.Buy,
+            OrderSide.Sell => Bybit.Net.Enums.OrderSide.Sell,
             _ => throw new ArgumentException($"Invalid order side: {side}")
         };
 
-        var bybitTriggerDirection = triggerDirection switch
-        {
-            Domain.Enums.TriggerDirection.Rise => Bybit.Net.Enums.TriggerDirection.Rise,
-            Domain.Enums.TriggerDirection.Fall => Bybit.Net.Enums.TriggerDirection.Fall,
-            _ => throw new ArgumentException($"Invalid trigger direction: {triggerDirection}")
-        };
-        
         var (quantityStep, priceStep) = await GetInstrumentInfoAsync(symbol);
         quantity = AdjustValue(quantity, quantityStep);
         triggerPrice = AdjustValue(triggerPrice, priceStep);
@@ -127,7 +131,6 @@ public class BybitExchange : IExchange
             marketUnit: MarketUnit.BaseAsset,
             quantity: quantity,
             triggerPrice: triggerPrice,
-            triggerDirection: bybitTriggerDirection,
             orderFilter: OrderFilter.StopOrder);
 
         if (!placeOrderResult.Success)
@@ -143,9 +146,41 @@ public class BybitExchange : IExchange
             Symbol = symbol,
             Quantity = quantity,
             TriggerPrice = triggerPrice,
-            TriggerDirection = triggerDirection,
             PlacedAt = DateTime.UtcNow
         };
+    }
+
+    public async Task<OrderFilledEvent?> PlaceMarketOrder(string symbol, OrderSide side, decimal quantity)
+    {
+        var bybitSide = side switch
+        {
+            OrderSide.Buy => Bybit.Net.Enums.OrderSide.Buy,
+            OrderSide.Sell => Bybit.Net.Enums.OrderSide.Sell,
+            _ => throw new ArgumentException($"Invalid order side: {side}")
+        };
+
+        var (quantityStep, _) = await GetInstrumentInfoAsync(symbol);
+        quantity = AdjustValue(quantity, quantityStep);
+
+        var placeOrderResult = await _client.V5Api.Trading.PlaceOrderAsync(
+            category: Category.Spot,
+            symbol: symbol,
+            side: bybitSide,
+            type: NewOrderType.Market,
+            marketUnit: MarketUnit.BaseAsset,
+            quantity: quantity);
+
+        if (!placeOrderResult.Success)
+        {
+            throw new Exception($"Failed to place market order: {placeOrderResult.Error}");
+        }
+
+        var order = placeOrderResult.Data;
+        
+        // Market orders might fill immediately, but we might want to wait for the fill event via socket 
+        // or fetch it explicitly if we need execution price now.
+        // For now, return a partial event or fetch it.
+        return await GetFilledOrderById(order.OrderId);
     }
 
     public async Task SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)

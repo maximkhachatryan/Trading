@@ -22,27 +22,6 @@ public class BybitExchange : IExchange
         _client = new BybitRestClient();
     }
 
-
-    // public async Task<Kline[]> GetKlines(string symbol, Interval interval, int limit, DateTime? endTime = null)
-    // {
-    //     var result =
-    //         await _client.V5Api.ExchangeData.GetKlinesAsync(Category.Spot, symbol, GetInterval(interval), limit: limit, endTime: endTime);
-    //     if (!result.Success)
-    //     {
-    //         throw new Exception($"Failed to get klines: {result.Error}");
-    //     }
-    //
-    //     return result.Data.List.Select(x => new Kline
-    //     {
-    //         StartTime = x.StartTime,
-    //         ClosePrice = x.ClosePrice,
-    //         HighPrice = x.HighPrice,
-    //         LowPrice = x.LowPrice,
-    //         OpenPrice = x.OpenPrice,
-    //         Volume = x.Volume
-    //     }).ToArray();
-    // }
-    
     public async Task<Kline[]> GetKlines(string symbol, Interval interval, int totalLimit, DateTime? endTime = null)
     {
         const int maxLimitPerRequest = 1000; // Bybit max per request

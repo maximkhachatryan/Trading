@@ -16,7 +16,6 @@ public class ConditionalOrderModel
     public string Symbol { get; set; } = string.Empty;
     public decimal Quantity { get; set; }
     public decimal TriggerPrice { get; set; }
-    public TriggerDirection TriggerDirection { get; set; }
     public DateTime PlacedAt { get; set; }
 }
 

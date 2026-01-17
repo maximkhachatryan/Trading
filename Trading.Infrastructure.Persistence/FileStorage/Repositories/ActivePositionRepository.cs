@@ -90,7 +90,6 @@ public class ActivePositionRepository() : IActivePositionRepository
                 Symbol = o.Symbol,
                 Quantity = o.Quantity,
                 TriggerPrice = o.TriggerPrice,
-                TriggerDirection = o.TriggerDirection,
                 PlacedAt = o.PlacedAt
             }).ToList()
         };
@@ -113,7 +112,6 @@ public class ActivePositionRepository() : IActivePositionRepository
             Symbol = o.Symbol,
             Quantity = o.Quantity,
             TriggerPrice = o.TriggerPrice,
-            TriggerDirection = o.TriggerDirection,
             PlacedAt = o.PlacedAt
         });
 

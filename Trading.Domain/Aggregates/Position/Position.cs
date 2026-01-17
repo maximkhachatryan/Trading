@@ -37,6 +37,8 @@ public class Position
 
     public void Buy(string orderId, decimal quantity, decimal grossPrice, decimal buyFeePercentage, DateTime timestamp)
     {
+        if (Trades.Any(t => t.OrderId == orderId)) return;
+        
         var netPrice = PriceHelper.CalculateNetPriceForBuy(grossPrice, buyFeePercentage);
         var netQuantity = quantity.DecreaseByPercentage(buyFeePercentage);
         
@@ -53,6 +55,8 @@ public class Position
 
     public void Sell(string orderId, decimal quantity, decimal grossPrice, decimal sellFeePercentage, DateTime timestamp)
     {
+        if (Trades.Any(t => t.OrderId == orderId)) return;
+        
         var netPrice = PriceHelper.CalculateNetPriceForSell(grossPrice, sellFeePercentage);
         Trades.Add(new Trade
         {

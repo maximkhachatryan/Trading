@@ -55,7 +55,7 @@ public class ActivePositionTradingServiceTests
     {
         // Arrange
         // MockExchange default state is empty, so let's pre-fill it to verify cancellation
-        await _exchange.PlaceConditionalOrder("BTCUSDT", OrderSide.Buy, 1, 50000, TriggerDirection.Fall);
+        await _exchange.PlaceConditionalOrder("BTCUSDT", OrderSide.Buy, 1, 50000);
 
         // Act
         await _service.StartTrading();
@@ -77,7 +77,7 @@ public class ActivePositionTradingServiceTests
         _repository.AddPosition(position);
         
         // Add a waiting order to the position
-        var order = await _exchange.PlaceConditionalOrder(position.Symbol, OrderSide.Buy, 1, 50000, TriggerDirection.Fall);
+        var order = await _exchange.PlaceConditionalOrder(position.Symbol, OrderSide.Buy, 1, 50000);
         position.AddWaitingOrder(order);
         
         // Simulate the order being filled

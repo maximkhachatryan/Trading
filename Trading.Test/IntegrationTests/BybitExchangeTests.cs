@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Options;
 using NUnit.Framework;
 using Trading.ApplicationContracts;
 using Trading.ApplicationServices;
+using Trading.ApplicationServices.Configurations;
 using Trading.Domain.Constants;
 using Trading.Domain.Enums;
 
@@ -15,9 +17,13 @@ public class BybitExchangeTests
     [SetUp]
     public void Setup()
     {
-        // Credentials are expected to be hardcoded in BybitExchange constructor for now, 
-        // or we might need to modify BybitExchange to accept them via valid configuration in the future.
-        //_exchange = new BybitExchange();
+        var options = Options.Create(new BybitOptions
+        {
+            ApiKey = "WJdIxvOSmRx35kwbRs",
+            ApiSecret = "B72zAcsP4D7BK7nA80nGbPwHQa1jvD2dmbuI",
+            UseTestnet = true
+        });
+        _exchange = new BybitExchange(options);
     }
 
     [Test]
@@ -44,6 +50,26 @@ public class BybitExchangeTests
     }
 
     [Test]
+    public async Task PlaceConditionalOrder_CheckTriggerDirection()
+    {
+        var symbol = "ETHUSDT";
+        var quantity = 0.001m; 
+        var triggerPrice = 10000m;
+        var side = OrderSide.Buy;
+        
+        var order1 = await _exchange.PlaceConditionalOrder(symbol, side, quantity, triggerPrice);
+        
+        symbol = "ETHUSDT";
+        quantity = 0.001m; 
+        triggerPrice = 9000;
+        side = OrderSide.Buy;
+        
+        var order2 = await _exchange.PlaceConditionalOrder(symbol, side, quantity, triggerPrice);
+        
+        
+    }
+
+    [Test]
     public async Task PlaceConditionalOrder_And_Cancel_ShouldWork()
     {
         // Arrange
@@ -53,11 +79,10 @@ public class BybitExchangeTests
         // Trigger price far away to avoid filling
         var triggerPrice = 10000m; 
         var side = OrderSide.Buy;
-        var direction = TriggerDirection.Fall;
 
         // Act
         // 1. Place Order
-        var order = await _exchange.PlaceConditionalOrder(symbol, side, quantity, triggerPrice, direction);
+        var order = await _exchange.PlaceConditionalOrder(symbol, side, quantity, triggerPrice);
 
         // Assert Placement
         Assert.That(order, Is.Not.Null);

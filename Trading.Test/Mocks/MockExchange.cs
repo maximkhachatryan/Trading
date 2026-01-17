@@ -51,6 +51,12 @@ public class MockExchange : IExchange
         return Task.FromResult(filteredKlines);
     }
 
+    public Task<decimal> GetCurrentPrice(string symbol)
+    {
+        var lastKline = _klines.OrderByDescending(k => k.StartTime).FirstOrDefault();
+        return Task.FromResult(lastKline?.ClosePrice ?? 100m); // Default mock price
+    }
+
     public Task<List<string>> GetUntriggeredConditionalSpotOrderIds(string? symbol = null)
     {
         if (symbol == null)
@@ -86,7 +92,7 @@ public class MockExchange : IExchange
         return Task.FromResult(false);
     }
 
-    public Task<ConditionalOrder> PlaceConditionalOrder(string symbol, Domain.Enums.OrderSide side, decimal quantity, decimal triggerPrice, Domain.Enums.TriggerDirection triggerDirection)
+    public Task<ConditionalOrder> PlaceConditionalOrder(string symbol, Domain.Enums.OrderSide side, decimal quantity, decimal triggerPrice)
     {
         var orderId = $"MOCK-{_orderIdCounter++}";
         
@@ -96,7 +102,6 @@ public class MockExchange : IExchange
             Symbol = symbol,
             Quantity = quantity,
             TriggerPrice = triggerPrice,
-            TriggerDirection = triggerDirection,
             PlacedAt = DateTime.UtcNow
         };
 
@@ -104,6 +109,28 @@ public class MockExchange : IExchange
         AddConditionalOrder(symbol, orderId);
 
         return Task.FromResult(order);
+    }
+
+    public async Task<OrderFilledEvent?> PlaceMarketOrder(string symbol, Domain.Enums.OrderSide side, decimal quantity)
+    {
+        var orderId = $"MOCK-{_orderIdCounter++}";
+        var price = await GetCurrentPrice(symbol);
+        
+        var filledEvent = new OrderFilledEvent
+        {
+            OrderId = orderId,
+            Symbol = symbol,
+            Side = side,
+            Quantity = quantity,
+            ExecutionPrice = price,
+            FilledAt = DateTime.UtcNow
+        };
+
+        _filledOrders[orderId] = filledEvent;
+        // In mock, we can simulate immediate callback or just return the event
+        _orderFilledCallback?.Invoke(filledEvent);
+        
+        return filledEvent;
     }
 
     public Task SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
