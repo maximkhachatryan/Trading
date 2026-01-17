@@ -97,6 +97,7 @@ public class ActivePositionTradingService(
             }
 
             position.ClearWaitingOrders();
+            await activePositionRepository.TryUpdate(position);
         }
     }
 
