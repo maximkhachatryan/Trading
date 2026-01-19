@@ -7,6 +7,7 @@ public class ActivePositionTradingOptions
     public decimal TradeValue { get; set; } = 1m;
     public decimal TakeProfitPercentage { get; set; } = 1m;
     public decimal PriceDeviationPercentage { get; set; } = 1m;
+    public decimal ShortSellDenominator { get; set; } = 1m;
     public decimal BuyFeePercentage { get; set; } = 1m;
     public decimal SellFeePercentage { get; set; } = 1m;
 }

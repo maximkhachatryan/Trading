@@ -27,6 +27,7 @@ public class MainTradingStrategyTests
             tradeValue: 100m,
             takeProfitPercentage: 1m,
             priceDeviationPercentage: 1m,
+            shortSellDenominator: 2m,
             buyFeePercentage: BuyFeePercentage,
             sellFeePercentage: SellFeePercentage);
 

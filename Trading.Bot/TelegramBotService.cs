@@ -35,6 +35,16 @@ public class TelegramBotService(
             return;
 
         var message = update.Message;
+
+        if (message?.From.Id != 8023975240)
+        {
+            await bot.SendMessage(
+                message.Chat.Id,
+                "❌ You are not authorized for this chat.",
+                cancellationToken: ct);
+            return;
+        }
+        
         if (message?.Text == null)
             return;
 

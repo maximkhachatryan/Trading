@@ -11,6 +11,7 @@ public class MainTradingStrategy(
     decimal tradeValue,
     decimal takeProfitPercentage,
     decimal priceDeviationPercentage,
+    decimal shortSellDenominator,
     decimal buyFeePercentage,
     decimal sellFeePercentage
 )
@@ -148,7 +149,7 @@ public class MainTradingStrategy(
                                     (metrics.Quantity *
                                      (1m - ((metrics.Cost - tradeValue) *
                                             (100m - priceDeviationPercentage)) /
-                                         (metrics.Cost * (100m - priceDeviationPercentage / 2))));
+                                         (metrics.Cost * (100m - priceDeviationPercentage / shortSellDenominator))));
             var shortSellGrossPrice = PriceHelper.CalculateGrossPriceForSell(shortSellNetPrice, sellFeePercentage);
 
             shortSellOrder = new ConditionalOrderRequest

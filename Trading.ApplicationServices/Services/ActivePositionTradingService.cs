@@ -149,6 +149,7 @@ public class ActivePositionTradingService(
             _options.TradeValue,
             _options.TakeProfitPercentage,
             _options.PriceDeviationPercentage,
+            _options.ShortSellDenominator,
             _options.BuyFeePercentage,
             _options.SellFeePercentage
         );
