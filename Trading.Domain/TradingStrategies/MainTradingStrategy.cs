@@ -74,7 +74,7 @@ public class MainTradingStrategy(
     //     return result.Count == 0 ? null : result;
     // }
 
-    private ConditionalOrderRequestInfo? CalculateConditionalOrders(Position position)
+    public ConditionalOrderRequestInfo? CalculateConditionalOrders(Position position)
     {
         var metrics = position.Metrics;
 
@@ -165,7 +165,7 @@ public class MainTradingStrategy(
     }
 
 
-    private record ConditionalOrderRequestInfo
+    public record ConditionalOrderRequestInfo
     {
         public ConditionalOrderRequest? FinalSellOrder { get; init; }
         public ConditionalOrderRequest? DipBuyOrder { get; init; }

@@ -7,4 +7,8 @@ public record PositionDetailsDto()
     public decimal? AverageNetPrice { get; init; }
     public decimal Cost { get; init; }
     public decimal Quantity { get; init; }
+    public decimal? DipBuyPrice { get; init; }
+    public decimal? ShortSellPrice { get; init; }
+    public decimal? FinalSellPrice { get; init; }
+    public decimal CurrentPrice { get; init; }
 }

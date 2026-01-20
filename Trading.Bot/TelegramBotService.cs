@@ -39,6 +39,8 @@ public class TelegramBotService(
             // }
         });
     }
+    
+    
 
     private async Task HandleUpdateAsync(
         ITelegramBotClient bot,
@@ -64,8 +66,16 @@ public class TelegramBotService(
                         }
                         else
                         {
+                            
                             var response = "Open Positions:\n" + string.Join("\n", openPositions.Select(p =>
-                                $"- {p.Key}: Qty {p.Value.Quantity:F4}, Avg Price {p.Value.AverageNetPrice:F2}, Cost {p.Value.Cost:F2} {p.Value.SourceSymbol}"));
+                                $"- {p.Key}\n" +
+                                $"    Qty {p.Value.Quantity:F4},\n" +
+                                $"    Avg Price {p.Value.AverageNetPrice:F2},\n" +
+                                $"    Cost {p.Value.Cost:F2} {p.Value.SourceSymbol},\n" +
+                                $"    CurrentPrice {p.Value.CurrentPrice},\n" +
+                                $"    DipBuyPrice {p.Value.DipBuyPrice},\n" +
+                                $"    ShortSellPrice {p.Value.ShortSellPrice},\n" +
+                                $"    FinalSellPrice {p.Value.FinalSellPrice}"));
                             await bot.SendMessage(cb.Message.Chat.Id, response, cancellationToken: ct,
                                 replyMarkup: MainMenu());
                         }
