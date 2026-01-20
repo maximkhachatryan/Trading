@@ -13,6 +13,6 @@ public interface IExchange
     Task<bool> CancelAllUntriggeredConditionalSpotOrder(string? symbol = null);
     Task<ConditionalOrder> PlaceConditionalOrder(string symbol, OrderSide side, decimal quantity, decimal triggerPrice);
     Task<OrderFilledEvent?> PlaceMarketOrder(string symbol, OrderSide side, decimal quantity);
-    Task SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled);
+    Task<ExchangeSubscriptionResult> SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled);
     Task<OrderFilledEvent?> GetFilledOrderById(string orderId);
 }

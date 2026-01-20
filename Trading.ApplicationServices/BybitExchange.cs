@@ -183,10 +183,9 @@ public class BybitExchange : IExchange
         return await GetFilledOrderById(order.OrderId);
     }
 
-    public async Task SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
+    public async Task<ExchangeSubscriptionResult> SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
     {
         _orderFilledCallback = onOrderFilled;
-
         var subscriptionResult = await _socketClient.V5PrivateApi.SubscribeToOrderUpdatesAsync(
             update =>
             {
@@ -218,6 +217,14 @@ public class BybitExchange : IExchange
         {
             throw new Exception($"Failed to subscribe to order updates: {subscriptionResult.Error}");
         }
+
+        var result = new ExchangeSubscriptionResult();
+
+        subscriptionResult.Data.ConnectionLost += result.SendConnectionLost;
+        subscriptionResult.Data.ConnectionClosed += result.SendConnectionClosed;
+        subscriptionResult.Data.ConnectionRestored += t => result.SendConnectionRestored(t);
+        
+        return result;
     }
 
     // public async Task Buy(string symbol, decimal qty)

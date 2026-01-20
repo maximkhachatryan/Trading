@@ -55,6 +55,7 @@ public class TelegramBotService(
             if (update.Type == UpdateType.CallbackQuery)
             {
                 var cb = update.CallbackQuery!;
+                notifier.ChatId = cb.Message.Chat.Id;
                 switch (cb.Data)
                 {
                     case "get_open_positions":

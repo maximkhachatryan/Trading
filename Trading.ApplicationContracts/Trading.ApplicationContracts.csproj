@@ -10,8 +10,4 @@
       <ProjectReference Include="..\Trading.Domain\Trading.Domain.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Dtos\Portfolio\" />
-    </ItemGroup>
-
 </Project>

@@ -133,10 +133,10 @@ public class MockExchange : IExchange
         return filledEvent;
     }
 
-    public Task SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
+    public Task<ExchangeSubscriptionResult> SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
     {
         _orderFilledCallback = onOrderFilled;
-        return Task.CompletedTask;
+        return Task.FromResult(new ExchangeSubscriptionResult());
     }
 
     public Task<OrderFilledEvent?> GetFilledOrderById(string orderId)

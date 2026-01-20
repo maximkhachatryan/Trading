@@ -51,9 +51,9 @@ public class ActivePositionTradingService(
             await ProcessUnhandledOrders(activePositionRepository);
         }
 
-        await notifier.Notify("🤖 Trading system ONLINE and monitoring active positions.");
+        await notifier.Notify("🟢🔌 Trading system ONLINE and monitoring active positions.");
 
-        await exchange.SubscribeToOrderUpdates(async (orderFilledEvent) =>
+        var subscriptionResult = await exchange.SubscribeToOrderUpdates(async (orderFilledEvent) =>
         {
             try
             {
@@ -77,6 +77,27 @@ public class ActivePositionTradingService(
                 await notifier.Notify($"❌ {errorMsg}");
             }
         });
+        
+        subscriptionResult.ConnectionLost += async () =>
+        {
+            var message = $"Order socket connection Lost";
+            Console.WriteLine(message);
+            await notifier.Notify($"❌🔌 {message}");
+        };
+        
+        subscriptionResult.ConnectionClosed += async () =>
+        {
+            var message = $"Order socket connection closed";
+            Console.WriteLine(message);
+            await notifier.Notify($"🟥🔌 {message}");
+        };
+        
+        subscriptionResult.ConnectionRestored += async (t) =>
+        {
+            var message = $"Order socket connection restored. Was disconnected for {t}";
+            Console.WriteLine(message);
+            await notifier.Notify($"🔄🔌 {message}");
+        };
 
         return true;
     }
