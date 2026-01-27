@@ -30,8 +30,9 @@ public class TelegramBotService(
         {
             new[]
             {
-                InlineKeyboardButton.WithCallbackData("Get Open Positions", "get_open_positions"),
+                InlineKeyboardButton.WithCallbackData("Reset Orders", "reset_orders"),
                 InlineKeyboardButton.WithCallbackData("Start Trading", "start_trading"),
+                InlineKeyboardButton.WithCallbackData("Get Open Positions", "get_open_positions"),
             }
             // new[]
             // {
@@ -49,7 +50,7 @@ public class TelegramBotService(
     {
         using var scope = serviceProvider.CreateScope();
         var positionService = scope.ServiceProvider.GetRequiredService<IActivePositionService>();
-
+        var tradingService = scope.ServiceProvider.GetRequiredService<IActivePositionTradingService>();
         try
         {
             if (update.Type == UpdateType.CallbackQuery)
@@ -80,10 +81,16 @@ public class TelegramBotService(
                             await bot.SendMessage(cb.Message.Chat.Id, response, cancellationToken: ct,
                                 replyMarkup: MainMenu());
                         }
-
+                        break;
+                    case "reset_orders":
+                        await tradingService.ResetConditionalOrders();
+                        await bot.SendMessage(
+                            cb.Message.Chat.Id,
+                            "♻️ Orders are reset",
+                            cancellationToken: ct,
+                            replyMarkup: MainMenu());
                         break;
                     case "start_trading":
-                        var tradingService = scope.ServiceProvider.GetRequiredService<IActivePositionTradingService>();
                         var started = await tradingService.StartTrading();
                         if (started)
                         {
@@ -101,7 +108,6 @@ public class TelegramBotService(
                                 cancellationToken: ct,
                                 replyMarkup: MainMenu());
                         }
-
                         break;
                 }
             }

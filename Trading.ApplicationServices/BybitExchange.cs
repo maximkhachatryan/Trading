@@ -18,13 +18,15 @@ public class BybitExchange : IExchange
     private readonly BybitRestClient _client;
     private readonly BybitSocketClient _socketClient;
     private Action<OrderFilledEvent>? _orderFilledCallback;
-    private readonly ConcurrentDictionary<string, (decimal QuantityStep, decimal PriceStep)> _instrumentInfoCache = new();
+
+    private readonly ConcurrentDictionary<string, (decimal QuantityStep, decimal PriceStep)> _instrumentInfoCache =
+        new();
 
     public BybitExchange(IOptions<BybitOptions> options)
     {
         var apiCredentials = new ApiCredentials(
             options.Value.ApiKey,
-            options.Value.ApiSecret); 
+            options.Value.ApiSecret);
 
         _client = new BybitRestClient(o =>
         {
@@ -34,7 +36,7 @@ public class BybitExchange : IExchange
                 o.Environment = BybitEnvironment.Testnet;
             }
         });
-        
+
         _socketClient = new BybitSocketClient(o =>
         {
             o.ApiCredentials = apiCredentials;
@@ -64,8 +66,8 @@ public class BybitExchange : IExchange
         {
             OrderId = order.OrderId,
             Symbol = order.Symbol,
-            Side = OrderSide.Buy,
-            Quantity = order.Quantity,
+            Side = order.Side == Bybit.Net.Enums.OrderSide.Buy ? OrderSide.Buy : OrderSide.Sell,
+            Quantity = order.QuantityFilled!.Value,
             ExecutionPrice = order.AveragePrice ?? 0m,
             FilledAt = order.UpdateTime
         };
@@ -91,10 +93,9 @@ public class BybitExchange : IExchange
         {
             return true;
         }
-        
+
         Console.WriteLine(result.Error?.ToString());
         return false;
-
     }
 
     public async Task<decimal> GetCurrentPrice(string symbol)
@@ -108,7 +109,8 @@ public class BybitExchange : IExchange
         return result.Data.List.First().LastPrice;
     }
 
-    public async Task<ConditionalOrder> PlaceConditionalOrder(string symbol, OrderSide side, decimal quantity, decimal triggerPrice)
+    public async Task<ConditionalOrder> PlaceConditionalOrder(string symbol, OrderSide side, decimal quantity,
+        decimal triggerPrice)
     {
         // Map domain enums to Bybit enums
         var bybitSide = side switch
@@ -139,7 +141,7 @@ public class BybitExchange : IExchange
         }
 
         var order = placeOrderResult.Data;
-        
+
         return new ConditionalOrder
         {
             OrderId = order.OrderId,
@@ -176,7 +178,7 @@ public class BybitExchange : IExchange
         }
 
         var order = placeOrderResult.Data;
-        
+
         // Market orders might fill immediately, but we might want to wait for the fill event via socket 
         // or fetch it explicitly if we need execution price now.
         // For now, return a partial event or fetch it.
@@ -186,32 +188,31 @@ public class BybitExchange : IExchange
     public async Task<ExchangeSubscriptionResult> SubscribeToOrderUpdates(Action<OrderFilledEvent> onOrderFilled)
     {
         _orderFilledCallback = onOrderFilled;
-        var subscriptionResult = await _socketClient.V5PrivateApi.SubscribeToOrderUpdatesAsync(
-            update =>
+        var subscriptionResult = await _socketClient.V5PrivateApi.SubscribeToOrderUpdatesAsync(update =>
+        {
+            foreach (var order in update.Data)
             {
-                foreach (var order in update.Data)
+                // Only process filled orders
+                if (order.Status == Bybit.Net.Enums.OrderStatus.Filled)
                 {
-                    // Only process filled orders
-                    if (order.Status == Bybit.Net.Enums.OrderStatus.Filled)
+                    var side = order.Side == Bybit.Net.Enums.OrderSide.Buy
+                        ? Domain.Enums.OrderSide.Buy
+                        : Domain.Enums.OrderSide.Sell;
+
+                    var filledEvent = new OrderFilledEvent
                     {
-                        var side = order.Side == Bybit.Net.Enums.OrderSide.Buy 
-                            ? Domain.Enums.OrderSide.Buy 
-                            : Domain.Enums.OrderSide.Sell;
+                        OrderId = order.OrderId,
+                        Symbol = order.Symbol,
+                        Side = side,
+                        Quantity = order.QuantityFilled!.Value,
+                        ExecutionPrice = order.AveragePrice ?? 0,
+                        FilledAt = order.UpdateTime
+                    };
 
-                        var filledEvent = new OrderFilledEvent
-                        {
-                            OrderId = order.OrderId,
-                            Symbol = order.Symbol,
-                            Side = side,
-                            Quantity = order.QuantityFilled!.Value,
-                            ExecutionPrice = order.AveragePrice ?? 0,
-                            FilledAt = order.UpdateTime
-                        };
-
-                        _orderFilledCallback?.Invoke(filledEvent);
-                    }
+                    _orderFilledCallback?.Invoke(filledEvent);
                 }
-            });
+            }
+        });
 
         if (!subscriptionResult.Success)
         {
@@ -223,7 +224,7 @@ public class BybitExchange : IExchange
         subscriptionResult.Data.ConnectionLost += result.SendConnectionLost;
         subscriptionResult.Data.ConnectionClosed += result.SendConnectionClosed;
         subscriptionResult.Data.ConnectionRestored += t => result.SendConnectionRestored(t);
-        
+
         return result;
     }
 

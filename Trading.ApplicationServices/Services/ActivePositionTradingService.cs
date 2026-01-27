@@ -27,29 +27,8 @@ public class ActivePositionTradingService(
 
     public async Task<bool> StartTrading()
     {
-        //Cancel all spot conditional orders for all symbols.
-        //Get all active positions
-        //Get all trades from each position start date. Update position based on missed buy/sell trades. Don't forget to save position.
-        //Start listening to the active positions symbols.
-        //Place conditional orders
-
         if (_isTrading) return true;
         _isTrading = true;
-
-        var cancelSucceeded = await exchange.CancelAllUntriggeredConditionalSpotOrder();
-
-        if (!cancelSucceeded)
-        {
-            Console.WriteLine("Trading couldn't be started (couldn't cancel UntriggeredConditionalSpotOrders)");
-            _isTrading = false;
-            return false;
-        }
-
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var activePositionRepository = scope.ServiceProvider.GetRequiredService<IActivePositionRepository>();
-            await ProcessUnhandledOrders(activePositionRepository);
-        }
 
         await notifier.Notify("🟢🔌 Trading system ONLINE and monitoring active positions.");
 
@@ -102,23 +81,29 @@ public class ActivePositionTradingService(
         return true;
     }
 
-    private async Task ProcessUnhandledOrders(IActivePositionRepository activePositionRepository)
+    public async Task ResetConditionalOrders()
     {
-        var positions = await activePositionRepository.GetActivePositions();
-        foreach (var position in positions.Values)
+        using (var scope = scopeFactory.CreateScope())
         {
-            foreach (var waitingOrder in position.WaitingOrders.ToList())
+            var activePositionRepository = scope.ServiceProvider.GetRequiredService<IActivePositionRepository>();
+            var positions = await activePositionRepository.GetActivePositions();
+            foreach (var position in positions.Values)
             {
-                var filledOrder = await exchange.GetFilledOrderById(waitingOrder.OrderId);
-
-                if (filledOrder != null)
+                foreach (var waitingOrder in position.WaitingOrders.ToList())
                 {
-                    await HandleOrderFilled(filledOrder, position, activePositionRepository);
-                }
-            }
+                    var filledOrder = await exchange.GetFilledOrderById(waitingOrder.OrderId);
 
-            position.ClearWaitingOrders();
-            await activePositionRepository.TryUpdate(position);
+                    if (filledOrder != null)
+                    {
+                        await HandleOrderFilled(filledOrder, position, activePositionRepository);
+                    }
+                }
+
+                position.ClearWaitingOrders();
+                await activePositionRepository.TryUpdate(position);
+                
+                await ResetConditionalOrders(position);
+            }
         }
     }
 
@@ -164,6 +149,11 @@ public class ActivePositionTradingService(
             await activePositionRepository.TryUpdate(activePosition);
         }
 
+        await ResetConditionalOrders(activePosition);
+    }
+
+    private async Task ResetConditionalOrders(Position activePosition)
+    {
         await exchange.CancelAllUntriggeredConditionalSpotOrder(activePosition.Symbol);
 
         var strategy = new MainTradingStrategy(
