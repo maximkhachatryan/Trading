@@ -71,8 +71,8 @@ public class TelegramBotService(
                             
                             var response = "Open Positions:\n" + string.Join("\n", openPositions.Select(p =>
                                 $"- {p.Key}\n" +
-                                $"    Qty {p.Value.Quantity:F4},\n" +
-                                $"    Avg Price {p.Value.AverageNetPrice:F2},\n" +
+                                $"    Qty {p.Value.Quantity:F6},\n" +
+                                $"    Avg Price {p.Value.AverageNetPrice:F8},\n" +
                                 $"    Cost {p.Value.Cost:F2} {p.Value.SourceSymbol},\n" +
                                 $"    CurrentPrice {p.Value.CurrentPrice},\n" +
                                 $"    DipBuyPrice {p.Value.DipBuyPrice},\n" +
